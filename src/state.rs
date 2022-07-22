@@ -1,7 +1,6 @@
 use crate::StateLock;
 
 use std::any::{Any, TypeId};
-use std::sync::Arc;
 
 /// any type that impl `State` can be used by `StateLock`
 /// a `state` is essentially a type that can be crated by `StateLock`
@@ -17,18 +16,22 @@ pub trait State: Any + Send + Sync {
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
-pub(crate) struct StateWrapper {
-    sate_lock: Arc<StateLock>,
+pub(crate) struct StateWrapper<'a> {
+    // State lock hold the state, it's safe to have the reference
+    sate_lock: &'a StateLock,
     state: Box<dyn State>,
 }
 
-impl StateWrapper {
-    pub fn new<T: State>(sate_lock: Arc<StateLock>) -> Self {
+impl<'a> StateWrapper<'a> {
+    pub fn new<T: State>(sate_lock: &StateLock) -> Self {
         let state = Box::new(T::tear_up());
-        StateWrapper { sate_lock, state }
+        // it's safe to eliminate the life time here
+        unsafe { std::mem::transmute(StateWrapper { sate_lock, state }) }
     }
 
-    pub fn new_from_id(sate_lock: Arc<StateLock>, id: TypeId) -> Self {
+    pub fn new_from_id(state_lock: &StateLock, id: TypeId) -> Self {
+        let _ = state_lock;
+        let _ = id;
         todo!()
     }
 
@@ -42,7 +45,7 @@ impl StateWrapper {
     }
 }
 
-impl Drop for StateWrapper {
+impl<'a> Drop for StateWrapper<'a> {
     fn drop(&mut self) {
         self.sate_lock.wakeup_next_group();
         self.state.tear_down();

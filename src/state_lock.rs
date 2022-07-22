@@ -14,21 +14,21 @@ use std::marker::PhantomData;
 /// state guard that can access the shared state
 // #[derive(Debug)]
 pub struct StateGuard<'a, T: State> {
-    lock: &'a StateLock,
+    _lock: &'a StateLock,
     // we use `Arc` to track the state references
     // when all `StateGuard`s are dropped, the state would be tear_down
-    state: Arc<StateWrapper>,
-    _phantom: PhantomData<T>,
+    state: Arc<StateWrapper<'a>>,
+    // we use *mut T to prevent send
+    _phantom: PhantomData<*mut T>,
 }
 
-// unsafe impl<'a, T: State> Send for StateGuard<'a, T> {}
 unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
 
 impl<'a, T: State> StateGuard<'a, T> {
-    fn new(lock: &'a StateLock, state: Arc<StateWrapper>) -> Self {
+    fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
         StateGuard {
-            lock,
             state,
+            _lock: lock,
             _phantom: PhantomData,
         }
     }
@@ -44,8 +44,8 @@ impl<'a, T: State> Deref for StateGuard<'a, T> {
 struct StateLockInner {
     // waiter map, key is the state type id, value is the waiter
     map: IndexMap<TypeId, Vec<ID>>,
-    // track the current state
-    state: Option<Weak<StateWrapper>>,
+    // track the current state, static life time for self ref
+    state: Option<Weak<StateWrapper<'static>>>,
 }
 
 /// `StateLock` that could be used to wait response for a state
@@ -102,7 +102,7 @@ impl StateLock {
         drop(lock);
         // wait for the state to be setup
         let state = waiter.wait_rsp(None)?;
-        assert_eq!(state.type_id(), TypeId::of::<T>());
+        // assert_eq!(state.type_id(), TypeId::of::<T>());
         Ok(StateGuard::new(self, state))
     }
 

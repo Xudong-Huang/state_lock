@@ -44,17 +44,14 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_waiter_map() {
-
         use std::sync::Arc;
         let state_lock = Arc::new(StateLock::new());
         let state_lock_1 = state_lock.clone();
 
         let state_a = state_lock.lock::<A>().unwrap();
         state_a.info();
-
 
         go!(move || {
             let state_b = state_lock_1.lock::<B>().unwrap();
