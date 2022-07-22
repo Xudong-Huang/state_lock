@@ -85,7 +85,7 @@ impl StateLock {
             let state_type = TypeId::of::<T>();
             // if we are waiting for the same state, then just return
             if s.type_id() == state_type {
-                println!("{} state is already locked", s.name());
+                debug!("{} state is already locked", s.name());
                 return Ok(StateGuard::new(self, s.clone()));
             } else {
                 // release the state ref before wait for the state to be setup
@@ -97,20 +97,13 @@ impl StateLock {
             let waiters = lock.map.entry(T::state_name()).or_insert_with(Vec::new);
             // insert the waiter into the waiters queue
             let id = waiter.id().unwrap();
-            println!(
-                "{} state is registered a waiter id {:?} ",
-                T::state_name(),
-                id
-            );
+            debug!("{} state register a waiter id {:?} ", T::state_name(), id);
             waiters.push(id);
             // release the lock and let other thread to access the state lock
             drop(lock);
 
             // wait for the state to be setup
-            println!(
-                "{} state is waiting for the state to be setup",
-                T::state_name()
-            );
+            debug!("{} state is waiting for setup", T::state_name());
             let state = waiter.wait_rsp(None)?;
             Ok(StateGuard::new(self, state))
         } else {
@@ -119,7 +112,7 @@ impl StateLock {
             // create a new state
             let state = Arc::new(StateWrapper::new::<T>(self));
             lock.state = Some(Arc::downgrade(&state));
-            println!("{} state is set", T::state_name());
+            debug!("{} state is set from empty", T::state_name());
             Ok(StateGuard::new(self, state))
         }
     }
@@ -128,18 +121,22 @@ impl StateLock {
     pub(crate) fn wakeup_next_group(&self, old_state: &StateWrapper) {
         let mut lock = self.inner.lock().unwrap();
         if let Some((id, waiters)) = lock.map.shift_remove_index(0) {
-            println!("wakeup_next_group: {:?}", id);
+            debug!("wakeup_next_group for state {}", id);
             // create a new state from the id
             let state = Arc::new(StateWrapper::new_from_id(self, id));
             // wait up all the waiters that are waiting for the state
             for waiter_id in waiters {
-                println!("wakeup_next_group: wakeup waiter {:?}", waiter_id);
+                debug!("wakeup_next_group: wakeup waiter {:?}", waiter_id);
                 TokenWaiter::set_rsp(waiter_id, state.clone());
             }
             lock.state.replace(Arc::downgrade(&state));
-            println!("{} state is set from {} state", state.name(), old_state.name());
+            debug!(
+                "{} state is set from {} state",
+                state.name(),
+                old_state.name()
+            );
         } else {
-            println!("state cleared!!!!");
+            debug!("state cleared!!!!");
             lock.state = None
         }
     }

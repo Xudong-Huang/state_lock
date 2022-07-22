@@ -6,6 +6,9 @@
 //! Multi thread could call `StateLock::lock` at the same time. if the state is ready, the thread
 //! would not block, else block until the state is ready.
 
+#[macro_use]
+extern crate log;
+
 mod state;
 pub use state::State;
 
@@ -93,6 +96,8 @@ mod tests {
 
     #[test]
     fn test_state_lock() {
+        let _ = env_logger::builder().filter_level(log::LevelFilter::Debug).try_init();
+
         use std::sync::Arc;
         let state_lock = Arc::new(StateLock::new());
         let state_lock_1 = state_lock.clone();

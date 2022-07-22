@@ -14,9 +14,12 @@ categories = ["concurrency"]
 exclude = [".gitignore", ".travis.yml", "appveyor.yml", "benches/**/*"]
 
 [dependencies]
+log = "0.4"
 may = "0.3"
 indexmap = "1"
 once_cell = "1"
 inventory = "0.3"
 may_waiter = "0.1"
 
+[dev_dependencies]
+env_logger = "0.9"

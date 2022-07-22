@@ -21,13 +21,13 @@ pub trait State: Any + Sync {
     where
         Self: Sized;
 
-		/// tear down the state, just drop the state
+    /// tear down the state, just drop the state
     fn tear_down(&mut self) {
-		println!("{} state tear down", self.name());
-	}
+        debug!("{} state tear down", self.name());
+    }
 
-	/// get the state as any type
-	fn as_any(&self) -> &dyn Any;
+    /// get the state as any type
+    fn as_any(&self) -> &dyn Any;
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
@@ -68,8 +68,8 @@ impl<'a> StateWrapper<'a> {
 
 impl<'a> Drop for StateWrapper<'a> {
     fn drop(&mut self) {
-        self.state_lock.wakeup_next_group(self);
         self.state.tear_down();
-        println!("{} state is dropped", self.name());
+        self.state_lock.wakeup_next_group(self);
+        debug!("{} state is dropped", self.name());
     }
 }
