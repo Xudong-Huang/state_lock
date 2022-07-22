@@ -48,6 +48,8 @@ struct StateLockInner {
     state: Option<Weak<StateWrapper<'static>>>,
 }
 
+unsafe impl Send for StateLockInner {}
+
 /// `StateLock` that could be used to wait response for a state
 pub struct StateLock {
     inner: Mutex<StateLockInner>,

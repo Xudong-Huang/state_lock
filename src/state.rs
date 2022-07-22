@@ -6,7 +6,7 @@ use std::any::{Any, TypeId};
 /// a `state` is essentially a type that can be crated by `StateLock`
 /// any task that try to lock the state would block until the state is ready
 /// the task then could get a reference to the state
-pub trait State: Any + Send + Sync {
+pub trait State: Any + Sync {
     /// tear up the state, just create the state
     fn tear_up() -> Self
     where
@@ -25,7 +25,7 @@ pub(crate) struct StateWrapper<'a> {
 impl<'a> StateWrapper<'a> {
     pub fn new<T: State>(sate_lock: &StateLock) -> Self {
         let state = Box::new(T::tear_up());
-        // it's safe to eliminate the life time here
+        // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { sate_lock, state }) }
     }
 
