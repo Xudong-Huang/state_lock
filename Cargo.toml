@@ -20,6 +20,7 @@ indexmap = "1"
 once_cell = "1"
 inventory = "0.3"
 may_waiter = "0.1"
+state_derive = { path = "state_derive" }
 
 [dev_dependencies]
 env_logger = "0.9"

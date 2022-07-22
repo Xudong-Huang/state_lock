@@ -6,9 +6,9 @@ use crate::state::{State, StateWrapper};
 use std::any::TypeId;
 use std::fmt::{self, Debug};
 use std::io;
+use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, Weak};
-use std::marker::PhantomData;
 
 /// state guard that can access the shared state
 // #[derive(Debug)]
