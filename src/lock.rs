@@ -11,7 +11,6 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, Weak};
 
 /// state guard that can access the shared state
-// #[derive(Debug)]
 pub struct StateGuard<'a, T: State> {
     _lock: &'a StateLock,
     // we use `Arc` to track the state references
@@ -22,6 +21,12 @@ pub struct StateGuard<'a, T: State> {
 }
 
 unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
+
+impl<'a, T: State> Debug for StateGuard<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "StateGuard{{ ... }}")
+    }
+}
 
 impl<'a, T: State> StateGuard<'a, T> {
     fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
@@ -50,7 +55,10 @@ struct StateLockInner {
 
 unsafe impl Send for StateLockInner {}
 
-/// `StateLock` that could be used to wait response for a state
+/// `StateLock` that could be used to lock for a state.
+///
+/// After call `StateLock::lock` a `StateGuard` would be returned,
+/// then you could use the `StateGuard` to access the state.
 pub struct StateLock {
     inner: Mutex<StateLockInner>,
 }
