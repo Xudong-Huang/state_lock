@@ -118,7 +118,7 @@ impl StateLock {
     }
 
     /// wait up all the waiters that are waiting for the state
-    pub(crate) fn wakeup_next_group(&self, old_state: &StateWrapper) {
+    pub(crate) fn wakeup_next_group(&self, old_state: &str) {
         let mut lock = self.inner.lock().unwrap();
         if let Some((id, waiters)) = lock.map.shift_remove_index(0) {
             debug!("wakeup_next_group for state {}", id);
@@ -129,12 +129,9 @@ impl StateLock {
                 debug!("wakeup_next_group: wakeup waiter {:?}", waiter_id);
                 TokenWaiter::set_rsp(waiter_id, state.clone());
             }
+            // need first drop the old state
             lock.state.replace(Arc::downgrade(&state));
-            debug!(
-                "{} state is set from {} state",
-                state.name(),
-                old_state.name()
-            );
+            debug!("{} state is set from {} state", state.name(), old_state);
         } else {
             debug!("state cleared!!!!");
             lock.state = None

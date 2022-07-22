@@ -14,7 +14,7 @@ pub trait State: Any + Sync {
         Self: Sized;
 
     /// unique state name, just the type name
-    fn name(&self) -> &str;
+    fn name(&self) -> &'static str;
 
     /// tear up the state, just create the state
     fn tear_up() -> Self
@@ -34,42 +34,46 @@ pub trait State: Any + Sync {
 pub(crate) struct StateWrapper<'a> {
     // State lock hold the state, it's safe to have the reference
     state_lock: &'a StateLock,
-    state: Box<dyn State>,
+    state: Option<Box<dyn State>>,
 }
 
 impl<'a> StateWrapper<'a> {
     pub fn new<T: State>(state_lock: &StateLock) -> Self {
-        let state = Box::new(T::tear_up());
+        let state = Some(Box::new(T::tear_up()) as Box<dyn State>);
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
 
     pub fn new_from_id(state_lock: &StateLock, id: &str) -> Self {
-        let state = tear_up_registered_state(id);
+        let state = Some(tear_up_registered_state(id));
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
 
     pub fn type_id(&self) -> TypeId {
-        // self.state.type_id()
-        self.state.as_ref().type_id()
+        self.state.as_ref().unwrap().as_ref().type_id()
     }
 
     pub fn name(&self) -> &str {
-        self.state.name()
+        self.state.as_ref().unwrap().name()
     }
 
     /// downcast to a concrete state type
     pub fn as_state<T: State>(&self) -> &T {
-        let any = self.state.as_any();
+        let any = self.state.as_ref().unwrap().as_any();
         any.downcast_ref::<T>().expect("wrong state cast")
     }
 }
 
 impl<'a> Drop for StateWrapper<'a> {
     fn drop(&mut self) {
-        self.state.tear_down();
-        self.state_lock.wakeup_next_group(self);
-        debug!("{} state is dropped", self.name());
+        let mut state = self.state.take().unwrap();
+        state.tear_down();
+        let old_state = state.name();
+        // we should drop the old state completely before setup the new state
+        drop(state);
+        debug!("{} state is dropped", old_state);
+
+        self.state_lock.wakeup_next_group(old_state);
     }
 }

@@ -54,7 +54,7 @@ mod tests {
         fn state_name() -> &'static str {
             "A"
         }
-        fn name(&self) -> &str {
+        fn name(&self) -> &'static str {
             Self::state_name()
         }
         fn tear_up() -> Self {
@@ -69,7 +69,7 @@ mod tests {
         fn state_name() -> &'static str {
             "B"
         }
-        fn name(&self) -> &str {
+        fn name(&self) -> &'static str {
             Self::state_name()
         }
         fn tear_up() -> Self {
@@ -96,7 +96,9 @@ mod tests {
 
     #[test]
     fn test_state_lock() {
-        let _ = env_logger::builder().filter_level(log::LevelFilter::Debug).try_init();
+        let _ = env_logger::builder()
+            .filter_level(log::LevelFilter::Debug)
+            .try_init();
 
         use std::sync::Arc;
         let state_lock = Arc::new(StateLock::new());
