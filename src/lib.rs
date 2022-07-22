@@ -52,7 +52,7 @@ mod tests {
 
     impl State for A {
         fn state_name() -> &'static str {
-            "A"
+            stringify!(A)
         }
         fn name(&self) -> &'static str {
             Self::state_name()
@@ -67,7 +67,7 @@ mod tests {
 
     impl State for B {
         fn state_name() -> &'static str {
-            "B"
+            stringify!(B)
         }
         fn name(&self) -> &'static str {
             Self::state_name()

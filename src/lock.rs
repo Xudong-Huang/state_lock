@@ -8,7 +8,6 @@ use std::fmt::{self, Debug};
 use std::io;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, Weak};
-// use std::time::Duration;
 use std::marker::PhantomData;
 
 /// state guard that can access the shared state
@@ -97,7 +96,7 @@ impl StateLock {
             let waiters = lock.map.entry(T::state_name()).or_insert_with(Vec::new);
             // insert the waiter into the waiters queue
             let id = waiter.id().unwrap();
-            debug!("{} state register a waiter id {:?} ", T::state_name(), id);
+            debug!("{} state register a waiter {:?} ", T::state_name(), id);
             waiters.push(id);
             // release the lock and let other thread to access the state lock
             drop(lock);
@@ -105,6 +104,7 @@ impl StateLock {
             // wait for the state to be setup
             debug!("{} state is waiting for setup", T::state_name());
             let state = waiter.wait_rsp(None)?;
+            debug!("{} state waite done", T::state_name());
             Ok(StateGuard::new(self, state))
         } else {
             // the last state is just released, check there is no same state waiter
