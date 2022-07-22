@@ -24,7 +24,7 @@ pub use inventory;
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use may::go;
+    use may::go;
     use std::any::Any;
 
     struct A;
@@ -103,8 +103,14 @@ mod tests {
         use std::sync::Arc;
         let state_lock = Arc::new(StateLock::new());
         let state_lock_1 = state_lock.clone();
+        let state_lock_2 = state_lock.clone();
 
-        std::thread::spawn(move || {
+        go!(move || {
+            let state_a1 = state_lock_2.lock::<A>().unwrap();
+            state_a1.info();
+        });
+
+        go!(move || {
             let state_b = state_lock_1.lock::<B>().unwrap();
             // std::thread::sleep(std::time::Duration::from_millis(2000));
             state_b.hello();
@@ -115,9 +121,8 @@ mod tests {
         println!("wait for A");
         // std::thread::sleep(std::time::Duration::from_millis(100));
         let state_a = state_lock.lock::<A>().unwrap();
-        let state_a1 = state_lock.lock::<A>().unwrap();
         println!("wait for A done");
         state_a.info();
-        state_a1.info();
+
     }
 }
