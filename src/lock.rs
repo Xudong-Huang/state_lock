@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use may::sync::Mutex;
 use may_waiter::{TokenWaiter, ID};
 
 use crate::state::{State, StateWrapper};
@@ -8,7 +9,7 @@ use std::fmt::{self, Debug};
 use std::io;
 use std::marker::PhantomData;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
 
 /// state guard that can access the shared state
 pub struct StateGuard<'a, T: State> {
