@@ -82,15 +82,15 @@ mod tests {
 
     crate::inventory::submit! {
         StateRegistration {
-            id: stringify!(A),
-            default_fn: A::make,
+            state: stringify!(A),
+            tear_up_fn: A::make,
         }
     }
 
     crate::inventory::submit! {
         StateRegistration {
-            id: stringify!(B),
-            default_fn: B::make,
+            state: stringify!(B),
+            tear_up_fn: B::make,
         }
     }
 
@@ -106,23 +106,23 @@ mod tests {
         let state_lock_2 = state_lock.clone();
 
         go!(move || {
+            std::thread::sleep(std::time::Duration::from_millis(100));
             let state_a1 = state_lock_2.lock::<A>().unwrap();
             state_a1.info();
         });
 
         go!(move || {
             let state_b = state_lock_1.lock::<B>().unwrap();
-            // std::thread::sleep(std::time::Duration::from_millis(2000));
+            std::thread::sleep(std::time::Duration::from_millis(200));
             state_b.hello();
             let state_b1 = state_lock_1.lock::<B>().unwrap();
             state_b1.hello();
         });
 
         println!("wait for A");
-        // std::thread::sleep(std::time::Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_millis(100));
         let state_a = state_lock.lock::<A>().unwrap();
         println!("wait for A done");
         state_a.info();
-
     }
 }

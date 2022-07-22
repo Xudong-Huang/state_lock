@@ -6,9 +6,9 @@ use std::collections::BTreeMap;
 
 // This is what we registered
 pub struct StateRegistration {
-    pub id: &'static str,
+    pub state: &'static str,
     // we are using lazy to avoid std service when register
-    pub default_fn: fn() -> Box<dyn State>,
+    pub tear_up_fn: fn() -> Box<dyn State>,
 }
 
 inventory::collect!(StateRegistration);
@@ -19,7 +19,7 @@ pub fn tear_up_registered_state(id: &str) -> Box<dyn State> {
     static REGISTERED_STATES: Lazy<RegisteredState> = Lazy::new(|| {
         let mut map = BTreeMap::new();
         for registered in inventory::iter::<StateRegistration> {
-            map.entry(registered.id).or_insert(registered.default_fn);
+            map.entry(registered.state).or_insert(registered.tear_up_fn);
         }
         map
     });
