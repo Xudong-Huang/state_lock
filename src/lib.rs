@@ -9,53 +9,108 @@
 mod state;
 pub use state::State;
 
-mod state_lock;
-pub use state_lock::{StateGuard, StateLock};
+mod lock;
+pub use lock::{StateGuard, StateLock};
+
+mod registry;
+pub use registry::StateRegistration;
+
+// re-export inventory
+pub use inventory;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use may::go;
+    // use may::go;
+    use std::any::Any;
 
     struct A;
     struct B;
 
     impl A {
+        fn make() -> Box<dyn State> {
+            Box::new(A)
+        }
+
         fn info(&self) {
-            println!("A is ready");
+            println!("A info");
         }
     }
 
     impl B {
+        fn make() -> Box<dyn State> {
+            Box::new(B)
+        }
+
         fn hello(&self) {
-            println!("B is ready");
+            println!("B is hello");
         }
     }
 
     impl State for A {
+        fn state_name() -> &'static str {
+            "A"
+        }
+        fn name(&self) -> &str {
+            Self::state_name()
+        }
         fn tear_up() -> Self {
             A
+        }
+        fn as_any(&self) -> &dyn Any {
+            self
         }
     }
 
     impl State for B {
+        fn state_name() -> &'static str {
+            "B"
+        }
+        fn name(&self) -> &str {
+            Self::state_name()
+        }
         fn tear_up() -> Self {
             B
+        }
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    crate::inventory::submit! {
+        StateRegistration {
+            id: stringify!(A),
+            default_fn: A::make,
+        }
+    }
+
+    crate::inventory::submit! {
+        StateRegistration {
+            id: stringify!(B),
+            default_fn: B::make,
         }
     }
 
     #[test]
-    fn test_waiter_map() {
+    fn test_state_lock() {
         use std::sync::Arc;
         let state_lock = Arc::new(StateLock::new());
         let state_lock_1 = state_lock.clone();
 
-        let state_a = state_lock.lock::<A>().unwrap();
-        state_a.info();
-
-        go!(move || {
+        std::thread::spawn(move || {
             let state_b = state_lock_1.lock::<B>().unwrap();
+            // std::thread::sleep(std::time::Duration::from_millis(2000));
             state_b.hello();
+            let state_b1 = state_lock_1.lock::<B>().unwrap();
+            state_b1.hello();
         });
+
+        println!("wait for A");
+        // std::thread::sleep(std::time::Duration::from_millis(100));
+        let state_a = state_lock.lock::<A>().unwrap();
+        let state_a1 = state_lock.lock::<A>().unwrap();
+        println!("wait for A done");
+        state_a.info();
+        state_a1.info();
     }
 }

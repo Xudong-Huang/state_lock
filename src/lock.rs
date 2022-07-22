@@ -26,6 +26,7 @@ unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
 
 impl<'a, T: State> StateGuard<'a, T> {
     fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
+        assert_eq!(state.type_id(), TypeId::of::<T>());
         StateGuard {
             state,
             _lock: lock,
@@ -43,7 +44,7 @@ impl<'a, T: State> Deref for StateGuard<'a, T> {
 
 struct StateLockInner {
     // waiter map, key is the state type id, value is the waiter
-    map: IndexMap<TypeId, Vec<ID>>,
+    map: IndexMap<&'static str, Vec<ID>>,
     // track the current state, static life time for self ref
     state: Option<Weak<StateWrapper<'static>>>,
 }
@@ -80,46 +81,65 @@ impl StateLock {
     pub fn lock<T: State>(&self) -> io::Result<StateGuard<T>> {
         let mut lock = self.inner.lock().unwrap();
         let state = lock.state.as_ref().and_then(|s| s.upgrade());
-        let waiter = if let Some(s) = state {
+        if let Some(s) = state {
             let state_type = TypeId::of::<T>();
             // if we are waiting for the same state, then just return
             if s.type_id() == state_type {
+                println!("{} state is already locked", s.name());
                 return Ok(StateGuard::new(self, s.clone()));
+            } else {
+                // release the state ref before wait for the state to be setup
+                drop(s);
             }
+
             // we have to wait until the state is setup
             let waiter = TokenWaiter::new();
-            let waiters = lock.map.entry(state_type).or_insert_with(Vec::new);
+            let waiters = lock.map.entry(T::state_name()).or_insert_with(Vec::new);
             // insert the waiter into the waiters queue
-            waiters.push(waiter.id().unwrap());
-            waiter
+            let id = waiter.id().unwrap();
+            println!(
+                "{} state is registered a waiter id {:?} ",
+                T::state_name(),
+                id
+            );
+            waiters.push(id);
+            // release the lock and let other thread to access the state lock
+            drop(lock);
+
+            // wait for the state to be setup
+            println!(
+                "{} state is waiting for the state to be setup",
+                T::state_name()
+            );
+            let state = waiter.wait_rsp(None)?;
+            Ok(StateGuard::new(self, state))
         } else {
             // the last state is just released, check there is no same state waiter
-            assert!(lock.map.get(&TypeId::of::<T>()).is_none());
+            assert!(lock.map.get(T::state_name()).is_none());
             // create a new state
             let state = Arc::new(StateWrapper::new::<T>(self));
             lock.state = Some(Arc::downgrade(&state));
-            return Ok(StateGuard::new(self, state));
-        };
-        // release the lock and let other thread to access the state lock
-        drop(lock);
-        // wait for the state to be setup
-        let state = waiter.wait_rsp(None)?;
-        // assert_eq!(state.type_id(), TypeId::of::<T>());
-        Ok(StateGuard::new(self, state))
+            println!("{} state is set", T::state_name());
+            Ok(StateGuard::new(self, state))
+        }
     }
 
     /// wait up all the waiters that are waiting for the state
-    pub(crate) fn wakeup_next_group(&self) {
+    pub(crate) fn wakeup_next_group(&self, old_state: &StateWrapper) {
         let mut lock = self.inner.lock().unwrap();
         if let Some((id, waiters)) = lock.map.shift_remove_index(0) {
+            println!("wakeup_next_group: {:?}", id);
             // create a new state from the id
             let state = Arc::new(StateWrapper::new_from_id(self, id));
             // wait up all the waiters that are waiting for the state
             for waiter_id in waiters {
+                println!("wakeup_next_group: wakeup waiter {:?}", waiter_id);
                 TokenWaiter::set_rsp(waiter_id, state.clone());
             }
-            lock.state = Some(Arc::downgrade(&state));
+            lock.state.replace(Arc::downgrade(&state));
+            println!("{} state is set from {} state", state.name(), old_state.name());
         } else {
+            println!("state cleared!!!!");
             lock.state = None
         }
     }

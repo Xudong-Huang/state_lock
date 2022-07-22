@@ -16,5 +16,7 @@ exclude = [".gitignore", ".travis.yml", "appveyor.yml", "benches/**/*"]
 [dependencies]
 may = "0.3"
 indexmap = "1"
+once_cell = "1"
+inventory = "0.3"
 may_waiter = "0.1"
 
