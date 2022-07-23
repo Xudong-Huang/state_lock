@@ -31,7 +31,7 @@ pub trait State: Any + Sync {
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
-pub(crate) struct StateWrapper<'a> {
+pub struct StateWrapper<'a> {
     // State lock hold the state, it's safe to have the reference
     state_lock: &'a StateLock,
     state: Option<Box<dyn State>>,
@@ -44,13 +44,13 @@ impl<'a> StateWrapper<'a> {
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
 
-    pub fn new_from_id(state_lock: &StateLock, id: &str) -> Self {
-        let state = Some(tear_up_registered_state(id));
+    pub fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
+        let state = Some(tear_up_registered_state(name)?);
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
 
-    pub fn type_id(&self) -> TypeId {
+    pub fn state_type_id(&self) -> TypeId {
         self.state.as_ref().unwrap().as_ref().type_id()
     }
 

@@ -4,7 +4,7 @@ use may_waiter::{TokenWaiter, ID};
 
 use crate::state::{State, StateWrapper};
 
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 use std::fmt::{self, Debug};
 use std::io;
 use std::marker::PhantomData;
@@ -31,7 +31,7 @@ impl<'a, T: State> Debug for StateGuard<'a, T> {
 
 impl<'a, T: State> StateGuard<'a, T> {
     fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
-        assert_eq!(state.type_id(), TypeId::of::<T>());
+        assert_eq!(state.state_type_id(), TypeId::of::<T>());
         StateGuard {
             state,
             _lock: lock,
@@ -77,12 +77,62 @@ impl Default for StateLock {
 }
 
 impl StateLock {
+    /// crate a new state lock
+    /// TODO: how to distinguish two different types state lock?
     pub fn new() -> Self {
         StateLock {
             inner: Mutex::new(StateLockInner {
                 map: IndexMap::new(),
                 state: None,
             }),
+        }
+    }
+
+    /// lock for a state by it's name
+    /// since we can't get the state type, we have to return an any trait object
+    pub fn lock_by_state_name(&self, state_name: &str) -> io::Result<Arc<StateWrapper>> {
+        let mut lock = self.inner.lock().unwrap();
+        let state = lock.state.as_ref().and_then(|s| s.upgrade());
+        if let Some(s) = state {
+            // if we are waiting for the same state, then just return
+            if s.name() == state_name {
+                debug!("{} state is already locked", s.name());
+                return Ok(s);
+            } else {
+                // release the state ref before wait for the state to be setup
+                drop(s);
+            }
+
+            // we have to wait until the state is setup
+            let waiter = TokenWaiter::new();
+            let waiters = match lock.map.get_mut(state_name) {
+                Some(v) => v,
+                None => {
+                    return Err(io::Error::new(io::ErrorKind::Other, "state name not found"));
+                }
+            };
+            // insert the waiter into the waiters queue
+            let id = waiter.id().unwrap();
+            debug!("{} state register a waiter {:?} ", state_name, id);
+            waiters.push(id);
+            // release the lock and let other thread to access the state lock
+            drop(lock);
+
+            // wait for the state to be setup
+            debug!("{} state is waiting for setup", state_name);
+            let state = waiter.wait_rsp(None)?;
+            debug!("{} state waite done", state_name);
+            Ok(state)
+        } else {
+            // the last state is just released, check there is no same state waiter
+            assert!(lock.map.get(state_name).is_none());
+            // create a new state
+            let state = StateWrapper::new_from_name(self, state_name)
+                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "state name not found"))?;
+            let state = Arc::new(state);
+            lock.state = Some(Arc::downgrade(&state));
+            debug!("{} state is set from empty", state_name);
+            Ok(state)
         }
     }
 
@@ -132,7 +182,8 @@ impl StateLock {
         if let Some((new_state, waiters)) = lock.map.shift_remove_index(0) {
             debug!("wakeup_next_group for state {}", new_state);
             // create a new state from the id
-            let state = Arc::new(StateWrapper::new_from_id(self, new_state));
+            let state = StateWrapper::new_from_name(self, new_state).expect("state name not found");
+            let state = Arc::new(state);
             // wait up all the waiters that are waiting for the state
             for waiter_id in waiters {
                 debug!("wakeup {} state, waiter {:?}", new_state, waiter_id);

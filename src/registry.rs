@@ -13,7 +13,7 @@ pub struct StateRegistration {
 
 inventory::collect!(StateRegistration);
 
-pub fn tear_up_registered_state(id: &str) -> Box<dyn State> {
+pub fn tear_up_registered_state(name: &str) -> Option<Box<dyn State>> {
     type RegisteredState = BTreeMap<&'static str, fn() -> Box<dyn State>>;
     // state registration
     static REGISTERED_STATES: Lazy<RegisteredState> = Lazy::new(|| {
@@ -23,8 +23,6 @@ pub fn tear_up_registered_state(id: &str) -> Box<dyn State> {
         }
         map
     });
-    let tear_up = REGISTERED_STATES
-        .get(&id)
-        .expect("can't find state registration");
-    tear_up()
+    let tear_up = REGISTERED_STATES.get(&name)?;
+    Some(tear_up())
 }
