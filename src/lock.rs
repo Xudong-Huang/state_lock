@@ -4,7 +4,7 @@ use may_waiter::{TokenWaiter, ID};
 
 use crate::state::{State, StateWrapper};
 
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::fmt::{self, Debug};
 use std::io;
 use std::marker::PhantomData;
@@ -142,7 +142,7 @@ impl StateLock {
         if let Some(s) = state {
             let state_type = TypeId::of::<T>();
             // if we are waiting for the same state, then just return
-            if s.type_id() == state_type {
+            if s.state_type_id() == state_type {
                 debug!("{} state is already locked", s.name());
                 return Ok(StateGuard::new(self, s.clone()));
             } else {
