@@ -31,6 +31,7 @@ pub trait State: Any + Sync {
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
+/// TODO: better name and documentation
 pub struct StateWrapper<'a> {
     // State lock hold the state, it's safe to have the reference
     state_lock: &'a StateLock,

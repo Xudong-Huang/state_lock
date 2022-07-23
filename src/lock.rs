@@ -88,6 +88,11 @@ impl StateLock {
         }
     }
 
+    /// return all internal state names
+    pub fn state_names(&self) -> impl Iterator<Item = &'static str> {
+        crate::registry::state_names()
+    }
+
     /// lock for a state by it's name
     /// since we can't get the state type, we have to return an any trait object
     pub fn lock_by_state_name(&self, state_name: &str) -> io::Result<Arc<StateWrapper>> {
@@ -136,6 +141,7 @@ impl StateLock {
         }
     }
 
+    /// lock for a state by state concrete type
     pub fn lock<T: State>(&self) -> io::Result<StateGuard<T>> {
         let mut lock = self.inner.lock().unwrap();
         let state = lock.state.as_ref().and_then(|s| s.upgrade());

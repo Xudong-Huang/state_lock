@@ -13,16 +13,21 @@ pub struct StateRegistration {
 
 inventory::collect!(StateRegistration);
 
+type RegisteredState = BTreeMap<&'static str, fn() -> Box<dyn State>>;
+// state registration
+static REGISTERED_STATES: Lazy<RegisteredState> = Lazy::new(|| {
+    let mut map = BTreeMap::new();
+    for registered in inventory::iter::<StateRegistration> {
+        map.entry(registered.state).or_insert(registered.tear_up_fn);
+    }
+    map
+});
+
+pub fn state_names() -> impl Iterator<Item = &'static str> {
+    REGISTERED_STATES.keys().copied()
+}
+
 pub fn tear_up_registered_state(name: &str) -> Option<Box<dyn State>> {
-    type RegisteredState = BTreeMap<&'static str, fn() -> Box<dyn State>>;
-    // state registration
-    static REGISTERED_STATES: Lazy<RegisteredState> = Lazy::new(|| {
-        let mut map = BTreeMap::new();
-        for registered in inventory::iter::<StateRegistration> {
-            map.entry(registered.state).or_insert(registered.tear_up_fn);
-        }
-        map
-    });
     let tear_up = REGISTERED_STATES.get(&name)?;
     Some(tear_up())
 }
