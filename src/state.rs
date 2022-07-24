@@ -76,7 +76,6 @@ impl<'a> Drop for StateWrapper<'a> {
 
 /// general state that can access the shared state
 pub struct RawState<'a> {
-    _lock: &'a StateLock,
     // we use `Arc` to track the state references
     // when all `StateWrapper`s are dropped, the state would be tear_down
     state: Arc<StateWrapper<'a>>,
@@ -91,8 +90,8 @@ impl<'a> Debug for RawState<'a> {
 }
 
 impl<'a> RawState<'a> {
-    pub(crate) fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
-        RawState { state, _lock: lock }
+    pub(crate) fn new(state: Arc<StateWrapper<'a>>) -> Self {
+        RawState { state }
     }
 
     /// get the state name
@@ -105,7 +104,6 @@ impl<'a> RawState<'a> {
         let _ = self.state.downcast::<T>(); // check type
         StateGuard {
             state: self.state,
-            _lock: self._lock,
             _phantom: PhantomData,
         }
     }
@@ -113,11 +111,10 @@ impl<'a> RawState<'a> {
 
 /// state guard that can access the shared state
 pub struct StateGuard<'a, T: State> {
-    _lock: &'a StateLock,
     // we use `Arc` to track the state references
     // when all `StateWrapper`s are dropped, the state would be tear_down
     state: Arc<StateWrapper<'a>>,
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<&'a T>,
 }
 
 unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}

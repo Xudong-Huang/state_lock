@@ -68,7 +68,7 @@ impl StateLock {
             // if we are waiting for the same state, then just return
             if s.name() == state_name {
                 debug!("{} state is already locked", s.name());
-                return Ok(RawState::new(self, s));
+                return Ok(RawState::new(s));
             }
 
             // we have to wait until the state is setup
@@ -89,7 +89,7 @@ impl StateLock {
             debug!("{} state is waiting for setup", state_name);
             let state = waiter.wait_rsp(None)?;
             debug!("{} state waite done", state_name);
-            Ok(RawState::new(self, state))
+            Ok(RawState::new(state))
         } else {
             // the last state is just released, check there is no same state waiter
             assert!(lock.map.get(state_name).is_none());
@@ -97,7 +97,7 @@ impl StateLock {
             let state = Arc::new(StateWrapper::new_from_name(self, state_name).unwrap());
             lock.state = Some(Arc::downgrade(&state));
             debug!("{} state is set from empty", state_name);
-            Ok(RawState::new(self, state))
+            Ok(RawState::new(state))
         }
     }
 
