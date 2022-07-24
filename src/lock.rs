@@ -4,7 +4,6 @@ use may_waiter::{TokenWaiter, ID};
 
 use crate::state::{RawState, State, StateGuard, StateWrapper};
 
-use std::any::TypeId;
 use std::fmt::{self, Debug};
 use std::io;
 use std::sync::{Arc, Weak};
@@ -95,8 +94,7 @@ impl StateLock {
             // the last state is just released, check there is no same state waiter
             assert!(lock.map.get(state_name).is_none());
             // create a new state
-            let state = StateWrapper::new_from_name(self, state_name).unwrap();
-            let state = Arc::new(state);
+            let state = Arc::new(StateWrapper::new_from_name(self, state_name).unwrap());
             lock.state = Some(Arc::downgrade(&state));
             debug!("{} state is set from empty", state_name);
             Ok(RawState::new(self, state))
@@ -105,43 +103,9 @@ impl StateLock {
 
     /// lock for a state by state concrete type
     pub fn lock<T: State>(&self) -> io::Result<StateGuard<T>> {
-        let mut lock = self.inner.lock().unwrap();
-        let state = lock.state.as_ref().and_then(|s| s.upgrade());
-        if let Some(s) = state {
-            let state_type = TypeId::of::<T>();
-            // if we are waiting for the same state, then just return
-            if s.state_type_id() == state_type {
-                debug!("{} state is already locked", s.name());
-                return Ok(StateGuard::new(self, s));
-            }
-
-            // we have to wait until the state is setup
-            let waiter = TokenWaiter::new();
-            let waiters = lock.map.entry(T::state_name()).or_insert_with(Vec::new);
-            // insert the waiter into the waiters queue
-            let id = waiter.id().unwrap();
-            debug!("{} state register a waiter {:?} ", T::state_name(), id);
-            waiters.push(id);
-            // release the lock and let other thread to access the state lock
-            drop(lock);
-            // release the state ref before wait for the state to be setup
-            // drop the state after release the lock, it may use the lock in sate drop
-            drop(s);
-
-            // wait for the state to be setup
-            debug!("{} state is waiting for setup", T::state_name());
-            let state = waiter.wait_rsp(None)?;
-            debug!("{} state waite done", T::state_name());
-            Ok(StateGuard::new(self, state))
-        } else {
-            // the last state is just released, check there is no same state waiter
-            assert!(lock.map.get(T::state_name()).is_none());
-            // create a new state
-            let state = Arc::new(StateWrapper::new::<T>(self));
-            lock.state = Some(Arc::downgrade(&state));
-            debug!("{} state is set from empty", T::state_name());
-            Ok(StateGuard::new(self, state))
-        }
+        let state_name = T::state_name();
+        let state = self.lock_by_state_name(state_name)?;
+        Ok(state.into_guard())
     }
 
     /// wait up all the waiters that are waiting for the state

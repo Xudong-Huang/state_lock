@@ -1,7 +1,7 @@
 use crate::registry::tear_up_registered_state;
 use crate::StateLock;
 
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -43,21 +43,10 @@ pub(crate) struct StateWrapper<'a> {
 }
 
 impl<'a> StateWrapper<'a> {
-    pub(crate) fn new<T: State>(state_lock: &StateLock) -> Self {
-        let state = Some(Box::new(T::tear_up()) as Box<dyn State>);
-        // it's safe to eliminate the life time here, basically they are equal
-        unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
-    }
-
     pub(crate) fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
         let state = Some(tear_up_registered_state(name)?);
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
-    }
-
-    /// return the state type id
-    pub(crate) fn state_type_id(&self) -> TypeId {
-        self.state.as_ref().unwrap().as_ref().type_id()
     }
 
     /// return the state name
@@ -111,9 +100,14 @@ impl<'a> RawState<'a> {
         self.state.name()
     }
 
-    /// downcast to a concrete state type
-    pub fn downcast<T: State>(&self) -> &T {
-        self.state.downcast::<T>()
+    /// convert to StateGuard
+    pub fn into_guard<T: State>(self) -> StateGuard<'a, T> {
+        let _ = self.state.downcast::<T>(); // check type
+        StateGuard {
+            state: self.state,
+            _lock: self._lock,
+            _phantom: PhantomData,
+        }
     }
 }
 
@@ -135,15 +129,6 @@ impl<'a, T: State> Debug for StateGuard<'a, T> {
 }
 
 impl<'a, T: State> StateGuard<'a, T> {
-    pub(crate) fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
-        assert_eq!(state.state_type_id(), TypeId::of::<T>());
-        StateGuard {
-            state,
-            _lock: lock,
-            _phantom: PhantomData,
-        }
-    }
-
     /// get the state name
     pub fn name(&self) -> &str {
         self.state.name()
