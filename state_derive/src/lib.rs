@@ -38,6 +38,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
             }
             state_lock::inventory::submit! {
                 state_lock::StateRegistration {
+                    state_set: "A set",
                     state: stringify!(#struct_ident),
                     tear_up_fn: super::#struct_ident::crate_default,
                 }

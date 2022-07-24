@@ -6,6 +6,9 @@ use std::collections::BTreeMap;
 
 // This is what we registered
 pub struct StateRegistration {
+    // state set name
+    pub state_set: &'static str,
+    // state name
     pub state: &'static str,
     // we are using lazy to avoid std service when register
     pub tear_up_fn: fn() -> Box<dyn State>,
@@ -14,20 +17,34 @@ pub struct StateRegistration {
 inventory::collect!(StateRegistration);
 
 type RegisteredState = BTreeMap<&'static str, fn() -> Box<dyn State>>;
+type RegisteredStateSet = BTreeMap<&'static str, RegisteredState>;
 // state registration
-static REGISTERED_STATES: Lazy<RegisteredState> = Lazy::new(|| {
+static REGISTERED_STATES: Lazy<RegisteredStateSet> = Lazy::new(|| {
     let mut map = BTreeMap::new();
     for registered in inventory::iter::<StateRegistration> {
-        map.entry(registered.state).or_insert(registered.tear_up_fn);
+        let state_map = map
+            .entry(registered.state_set)
+            .or_insert_with(BTreeMap::new);
+        state_map
+            .entry(registered.state)
+            .or_insert(registered.tear_up_fn);
     }
     map
 });
 
-pub fn state_names() -> impl Iterator<Item = &'static str> {
-    REGISTERED_STATES.keys().copied()
+fn get_state_set(state_set: &str) -> &RegisteredState {
+    REGISTERED_STATES
+        .get(state_set)
+        .expect("state set not found")
 }
 
-pub fn tear_up_registered_state(name: &str) -> Option<Box<dyn State>> {
-    let tear_up = REGISTERED_STATES.get(&name)?;
+pub fn state_names(state_set: &str) -> impl Iterator<Item = &'static str> + '_ {
+    let state_set = get_state_set(state_set);
+    state_set.keys().copied()
+}
+
+pub fn tear_up_registered_state(state_set: &str, name: &str) -> Option<Box<dyn State>> {
+    let state_set = get_state_set(state_set);
+    let tear_up = state_set.get(&name)?;
     Some(tear_up())
 }

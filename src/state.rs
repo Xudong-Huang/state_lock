@@ -44,7 +44,7 @@ pub(crate) struct StateWrapper<'a> {
 
 impl<'a> StateWrapper<'a> {
     pub(crate) fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
-        let state = Some(tear_up_registered_state(name)?);
+        let state = Some(tear_up_registered_state(state_lock.state_set(), name)?);
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }

@@ -23,6 +23,7 @@ unsafe impl Send for StateLockInner {}
 /// then you could use the `StateGuard` to access the state.
 pub struct StateLock {
     inner: Mutex<StateLockInner>,
+    state_set: String,
 }
 
 impl Debug for StateLock {
@@ -31,27 +32,28 @@ impl Debug for StateLock {
     }
 }
 
-impl Default for StateLock {
-    fn default() -> Self {
-        StateLock::new()
-    }
-}
-
 impl StateLock {
     /// crate a new state lock
     /// TODO: how to distinguish two different types state lock?
-    pub fn new() -> Self {
+    pub fn new(state_set: &str) -> Self {
+        let count = crate::registry::state_names(state_set).count();
         StateLock {
             inner: Mutex::new(StateLockInner {
-                map: IndexMap::new(),
+                map: IndexMap::with_capacity(count),
                 state: None,
             }),
+            state_set: state_set.into(),
         }
     }
 
+    /// return the state set name
+    pub fn state_set(&self) -> &str {
+        &self.state_set
+    }
+
     /// return all internal state names
-    pub fn state_names(&self) -> impl Iterator<Item = &'static str> {
-        crate::registry::state_names()
+    pub fn state_names(&self) -> impl Iterator<Item = &'static str> + '_ {
+        crate::registry::state_names(&self.state_set)
     }
 
     /// lock for a state by it's name

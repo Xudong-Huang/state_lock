@@ -17,7 +17,7 @@ fn test_state_lock() {
     //     .try_init();
 
     use std::sync::Arc;
-    let state_lock = Arc::new(StateLock::new());
+    let state_lock = Arc::new(StateLock::new("A set"));
 
     for _ in 0..1000 {
         may::coroutine::scope(|scope| {

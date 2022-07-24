@@ -31,6 +31,7 @@ impl State for A {
 
 state_lock::inventory::submit! {
     StateRegistration {
+        state_set: "A set",
         state: stringify!(A),
         tear_up_fn: A::make,
     }
@@ -51,7 +52,7 @@ fn test_state_lock() {
         .try_init();
 
     use std::sync::Arc;
-    let state_lock = Arc::new(StateLock::new());
+    let state_lock = Arc::new(StateLock::new("A set"));
     let state_lock_1 = state_lock.clone();
     let state_lock_2 = state_lock.clone();
 
