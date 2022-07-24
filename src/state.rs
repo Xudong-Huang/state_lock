@@ -2,6 +2,10 @@ use crate::registry::tear_up_registered_state;
 use crate::StateLock;
 
 use std::any::{Any, TypeId};
+use std::fmt::{self, Debug};
+use std::marker::PhantomData;
+use std::ops::Deref;
+use std::sync::Arc;
 
 /// any type that impl `State` can be used by `StateLock`
 /// a `state` is essentially a type that can be crated by `StateLock`
@@ -31,10 +35,10 @@ pub trait State: Any + Sync {
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
-/// TODO: better name and documentation
-pub struct StateWrapper<'a> {
+pub(crate) struct StateWrapper<'a> {
     // State lock hold the state, it's safe to have the reference
     state_lock: &'a StateLock,
+    // State is `Sync` but not `Send`
     state: Option<Box<dyn State>>,
 }
 
@@ -52,17 +56,17 @@ impl<'a> StateWrapper<'a> {
     }
 
     /// return the state type id
-    pub fn state_type_id(&self) -> TypeId {
+    pub(crate) fn state_type_id(&self) -> TypeId {
         self.state.as_ref().unwrap().as_ref().type_id()
     }
 
     /// return the state name
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         self.state.as_ref().unwrap().name()
     }
 
     /// downcast to a concrete state type
-    pub fn as_state<T: State>(&self) -> &T {
+    pub(crate) fn downcast<T: State>(&self) -> &T {
         let any = self.state.as_ref().unwrap().as_any();
         any.downcast_ref::<T>().expect("wrong state cast")
     }
@@ -78,5 +82,77 @@ impl<'a> Drop for StateWrapper<'a> {
         debug!("{} state is dropped", old_state);
 
         self.state_lock.wakeup_next_group(old_state);
+    }
+}
+
+/// general state that can access the shared state
+pub struct RawState<'a> {
+    _lock: &'a StateLock,
+    // we use `Arc` to track the state references
+    // when all `StateWrapper`s are dropped, the state would be tear_down
+    state: Arc<StateWrapper<'a>>,
+}
+
+// unsafe impl<'a> Sync for RawState<'a> {}
+
+impl<'a> Debug for RawState<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "RawState{{ ... }}")
+    }
+}
+
+impl<'a> RawState<'a> {
+    pub(crate) fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
+        RawState { state, _lock: lock }
+    }
+
+    /// get the state name
+    pub fn name(&self) -> &str {
+        self.state.name()
+    }
+
+    /// downcast to a concrete state type
+    pub fn downcast<T: State>(&self) -> &T {
+        self.state.downcast::<T>()
+    }
+}
+
+/// state guard that can access the shared state
+pub struct StateGuard<'a, T: State> {
+    _lock: &'a StateLock,
+    // we use `Arc` to track the state references
+    // when all `StateWrapper`s are dropped, the state would be tear_down
+    state: Arc<StateWrapper<'a>>,
+    _phantom: PhantomData<T>,
+}
+
+unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
+
+impl<'a, T: State> Debug for StateGuard<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "StateGuard{{ ... }}")
+    }
+}
+
+impl<'a, T: State> StateGuard<'a, T> {
+    pub(crate) fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
+        assert_eq!(state.state_type_id(), TypeId::of::<T>());
+        StateGuard {
+            state,
+            _lock: lock,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// get the state name
+    pub fn name(&self) -> &str {
+        self.state.name()
+    }
+}
+
+impl<'a, T: State> Deref for StateGuard<'a, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        self.state.downcast()
     }
 }

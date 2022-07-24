@@ -1,51 +1,13 @@
 use indexmap::IndexMap;
-use may::sync::Mutex;
+// use may::sync::Mutex;
 use may_waiter::{TokenWaiter, ID};
 
-use crate::state::{State, StateWrapper};
+use crate::state::{RawState, State, StateGuard, StateWrapper};
 
 use std::any::TypeId;
 use std::fmt::{self, Debug};
 use std::io;
-use std::marker::PhantomData;
-use std::ops::Deref;
-use std::sync::{Arc, Weak};
-
-/// state guard that can access the shared state
-pub struct StateGuard<'a, T: State> {
-    _lock: &'a StateLock,
-    // we use `Arc` to track the state references
-    // when all `StateGuard`s are dropped, the state would be tear_down
-    state: Arc<StateWrapper<'a>>,
-    // we use *mut T to prevent send
-    _phantom: PhantomData<*mut T>,
-}
-
-unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
-
-impl<'a, T: State> Debug for StateGuard<'a, T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "StateGuard{{ ... }}")
-    }
-}
-
-impl<'a, T: State> StateGuard<'a, T> {
-    fn new(lock: &'a StateLock, state: Arc<StateWrapper<'a>>) -> Self {
-        assert_eq!(state.state_type_id(), TypeId::of::<T>());
-        StateGuard {
-            state,
-            _lock: lock,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<'a, T: State> Deref for StateGuard<'a, T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        self.state.as_state()
-    }
-}
+use std::sync::{Arc, Mutex, Weak};
 
 struct StateLockInner {
     // waiter map, key is the state type id, value is the waiter
@@ -95,7 +57,7 @@ impl StateLock {
 
     /// lock for a state by it's name
     /// since we can't get the state type, we have to return a state wrapper
-    pub fn lock_by_state_name(&self, state_name: &'static str) -> io::Result<Arc<StateWrapper>> {
+    pub fn lock_by_state_name(&self, state_name: &'static str) -> io::Result<RawState> {
         if !self.state_names().any(|name| name == state_name) {
             let err_msg = format!("state {} is not registered", state_name);
             return Err(io::Error::new(io::ErrorKind::Other, err_msg));
@@ -107,7 +69,7 @@ impl StateLock {
             // if we are waiting for the same state, then just return
             if s.name() == state_name {
                 debug!("{} state is already locked", s.name());
-                return Ok(s);
+                return Ok(RawState::new(self, s));
             }
 
             // we have to wait until the state is setup
@@ -128,7 +90,7 @@ impl StateLock {
             debug!("{} state is waiting for setup", state_name);
             let state = waiter.wait_rsp(None)?;
             debug!("{} state waite done", state_name);
-            Ok(state)
+            Ok(RawState::new(self, state))
         } else {
             // the last state is just released, check there is no same state waiter
             assert!(lock.map.get(state_name).is_none());
@@ -137,7 +99,7 @@ impl StateLock {
             let state = Arc::new(state);
             lock.state = Some(Arc::downgrade(&state));
             debug!("{} state is set from empty", state_name);
-            Ok(state)
+            Ok(RawState::new(self, state))
         }
     }
 
@@ -150,7 +112,7 @@ impl StateLock {
             // if we are waiting for the same state, then just return
             if s.state_type_id() == state_type {
                 debug!("{} state is already locked", s.name());
-                return Ok(StateGuard::new(self, s.clone()));
+                return Ok(StateGuard::new(self, s));
             }
 
             // we have to wait until the state is setup

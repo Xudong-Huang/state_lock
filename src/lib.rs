@@ -10,10 +10,10 @@
 extern crate log;
 
 mod state;
-pub use state::State;
+pub use state::{RawState, State, StateGuard};
 
 mod lock;
-pub use lock::{StateGuard, StateLock};
+pub use lock::StateLock;
 
 mod registry;
 pub use registry::StateRegistration;
