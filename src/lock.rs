@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-// use may::sync::Mutex;
+use may::sync::Mutex;
 use may_waiter::{TokenWaiter, ID};
 
 use crate::state::{RawState, State, StateGuard, StateWrapper};
@@ -7,7 +7,7 @@ use crate::state::{RawState, State, StateGuard, StateWrapper};
 use std::any::TypeId;
 use std::fmt::{self, Debug};
 use std::io;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
 
 struct StateLockInner {
     // waiter map, key is the state type id, value is the waiter
