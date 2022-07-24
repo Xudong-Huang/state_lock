@@ -25,7 +25,7 @@ fn test_state_lock() {
                 let state_lock_clone = state_lock.clone();
                 go!(scope, move || {
                     let state = state_lock_clone.lock_by_state_name(name).unwrap();
-                    println!("state name: {} waiting done", state.name());
+                    println!("state: {:?} waiting done", state);
                 });
             });
         });

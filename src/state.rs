@@ -85,7 +85,7 @@ pub struct RawState<'a> {
 
 impl<'a> Debug for RawState<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RawState{{ ... }}")
+        write!(f, "RawState{{ {} }}", self.state.name())
     }
 }
 
@@ -121,7 +121,7 @@ unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
 
 impl<'a, T: State> Debug for StateGuard<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "StateGuard{{ ... }}")
+        write!(f, "RawState{{ {} }}", self.state.name())
     }
 }
 
