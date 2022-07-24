@@ -33,8 +33,8 @@ impl Debug for StateLock {
 }
 
 impl StateLock {
-    /// crate a new state lock
-    /// TODO: how to distinguish two different types state lock?
+    /// crate a new state lock with the given state set name.
+    /// it will panic if the state set is not registered.
     pub fn new(state_set: &str) -> Self {
         let count = crate::registry::state_names(state_set).count();
         StateLock {

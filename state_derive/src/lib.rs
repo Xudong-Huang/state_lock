@@ -30,17 +30,16 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
                     self
                 }
             }
-
             impl super::#struct_ident {
-                fn crate_default() -> Box<dyn state_lock::State> {
+                fn create_default() -> Box<dyn state_lock::State> {
                     Box::new(Self::default())
                 }
             }
             state_lock::inventory::submit! {
                 state_lock::StateRegistration {
-                    state_set: "A set",
                     state: stringify!(#struct_ident),
-                    tear_up_fn: super::#struct_ident::crate_default,
+                    state_set: "A set",
+                    tear_up_fn: super::#struct_ident::create_default,
                 }
             }
         }
