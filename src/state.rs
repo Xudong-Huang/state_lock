@@ -39,22 +39,24 @@ pub struct StateWrapper<'a> {
 }
 
 impl<'a> StateWrapper<'a> {
-    pub fn new<T: State>(state_lock: &StateLock) -> Self {
+    pub(crate) fn new<T: State>(state_lock: &StateLock) -> Self {
         let state = Some(Box::new(T::tear_up()) as Box<dyn State>);
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
 
-    pub fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
+    pub(crate) fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
         let state = Some(tear_up_registered_state(name)?);
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
 
+    /// return the state type id
     pub fn state_type_id(&self) -> TypeId {
         self.state.as_ref().unwrap().as_ref().type_id()
     }
 
+    /// return the state name
     pub fn name(&self) -> &str {
         self.state.as_ref().unwrap().name()
     }

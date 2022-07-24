@@ -94,8 +94,13 @@ impl StateLock {
     }
 
     /// lock for a state by it's name
-    /// since we can't get the state type, we have to return an any trait object
-    pub fn lock_by_state_name(&self, state_name: &str) -> io::Result<Arc<StateWrapper>> {
+    /// since we can't get the state type, we have to return a state wrapper
+    pub fn lock_by_state_name(&self, state_name: &'static str) -> io::Result<Arc<StateWrapper>> {
+        if !self.state_names().any(|name| name == state_name) {
+            let err_msg = format!("state {} is not registered", state_name);
+            return Err(io::Error::new(io::ErrorKind::Other, err_msg));
+        }
+
         let mut lock = self.inner.lock().unwrap();
         let state = lock.state.as_ref().and_then(|s| s.upgrade());
         if let Some(s) = state {
@@ -103,25 +108,21 @@ impl StateLock {
             if s.name() == state_name {
                 debug!("{} state is already locked", s.name());
                 return Ok(s);
-            } else {
-                // release the state ref before wait for the state to be setup
-                drop(s);
             }
 
             // we have to wait until the state is setup
             let waiter = TokenWaiter::new();
-            let waiters = match lock.map.get_mut(state_name) {
-                Some(v) => v,
-                None => {
-                    return Err(io::Error::new(io::ErrorKind::Other, "state name not found"));
-                }
-            };
+            let waiters = lock.map.entry(state_name).or_insert_with(Vec::new);
+
             // insert the waiter into the waiters queue
             let id = waiter.id().unwrap();
             debug!("{} state register a waiter {:?} ", state_name, id);
             waiters.push(id);
             // release the lock and let other thread to access the state lock
             drop(lock);
+            // release the state ref before wait for the state to be setup
+            // drop the state after release the lock, it may use the lock in sate drop
+            drop(s);
 
             // wait for the state to be setup
             debug!("{} state is waiting for setup", state_name);
@@ -132,8 +133,7 @@ impl StateLock {
             // the last state is just released, check there is no same state waiter
             assert!(lock.map.get(state_name).is_none());
             // create a new state
-            let state = StateWrapper::new_from_name(self, state_name)
-                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "state name not found"))?;
+            let state = StateWrapper::new_from_name(self, state_name).unwrap();
             let state = Arc::new(state);
             lock.state = Some(Arc::downgrade(&state));
             debug!("{} state is set from empty", state_name);
@@ -151,9 +151,6 @@ impl StateLock {
             if s.state_type_id() == state_type {
                 debug!("{} state is already locked", s.name());
                 return Ok(StateGuard::new(self, s.clone()));
-            } else {
-                // release the state ref before wait for the state to be setup
-                drop(s);
             }
 
             // we have to wait until the state is setup
@@ -165,6 +162,9 @@ impl StateLock {
             waiters.push(id);
             // release the lock and let other thread to access the state lock
             drop(lock);
+            // release the state ref before wait for the state to be setup
+            // drop the state after release the lock, it may use the lock in sate drop
+            drop(s);
 
             // wait for the state to be setup
             debug!("{} state is waiting for setup", T::state_name());
