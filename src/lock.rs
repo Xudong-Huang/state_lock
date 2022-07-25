@@ -65,8 +65,7 @@ impl StateLock {
         }
 
         let mut lock = self.inner.lock().unwrap();
-        let state = lock.state.as_ref().and_then(|s| s.upgrade());
-        if let Some(s) = state {
+        if let Some(s) = lock.state.as_ref().and_then(|s| s.upgrade()) {
             // if we are waiting for the same state, then just return
             if s.name() == state_name {
                 debug!("{} state is already locked", s.name());
@@ -111,21 +110,25 @@ impl StateLock {
     }
 
     /// wait up all the waiters that are waiting for the state
-    pub(crate) fn wakeup_next_group(&self, old_state: &str) {
+    pub(crate) fn wakeup_next_group(&self) {
         let mut lock = self.inner.lock().unwrap();
         if let Some((new_state, waiters)) = lock.map.shift_remove_index(0) {
-            debug!("wakeup_next_group for state {}", new_state);
+            debug!("wakeup_next_group to state {}", new_state);
             // create a new state from the id
             let state = StateWrapper::new_from_name(self, new_state).expect("state name not found");
             let state = Arc::new(state);
+
+            // need first drop the old state
+            lock.state.replace(Arc::downgrade(&state));
+            debug!("{} state is set from last state", state.name());
+
+            // must first drop the lock, then wakeup the waiters
+            drop(lock);
             // wait up all the waiters that are waiting for the state
             for waiter_id in waiters {
                 debug!("wakeup {} state, waiter {:?}", new_state, waiter_id);
                 TokenWaiter::set_rsp(waiter_id, state.clone());
             }
-            // need first drop the old state
-            lock.state.replace(Arc::downgrade(&state));
-            debug!("{} state is set from {} state", state.name(), old_state);
         } else {
             debug!("state cleared!!!!");
             lock.state = None

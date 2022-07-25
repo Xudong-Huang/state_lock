@@ -77,7 +77,7 @@ impl<'a> Drop for StateWrapper<'a> {
         drop(state);
         debug!("{} state is dropped", old_state);
 
-        self.state_lock.wakeup_next_group(old_state);
+        self.state_lock.wakeup_next_group();
     }
 }
 
