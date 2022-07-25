@@ -77,12 +77,12 @@ B is hello
 [2022-07-22T11:17:50Z DEBUG state_lock::state] B state is dropped
 [2022-07-22T11:17:50Z DEBUG state_lock::lock] wakeup_next_group for state A
 [2022-07-22T11:17:50Z DEBUG state_lock::lock] wakeup A state, waiter ID(6848988010368)
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state waite done
+[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state wait done
 wait for A done
 [2022-07-22T11:17:50Z DEBUG state_lock::lock] wakeup A state, waiter ID(18990301453184)
 A info
 [2022-07-22T11:17:50Z DEBUG state_lock::lock] A state is set from B state
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state waite done
+[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state wait done
 A info
 [2022-07-22T11:17:50Z DEBUG state_lock::state] A state tear down
 [2022-07-22T11:17:50Z DEBUG state_lock::state] A state is dropped
