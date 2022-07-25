@@ -1,13 +1,18 @@
 use may::go;
 use state_lock::{RawState, State, StateLock};
 
+const STATE_FAMILY: &str = "StateIter";
+
 #[derive(State, Default)]
+#[family(STATE_FAMILY)]
 struct A;
 
 #[derive(State, Default)]
+#[family(STATE_FAMILY)]
 struct B;
 
 #[derive(State, Default)]
+#[family("StateIter")]
 struct C;
 
 trait Test {
@@ -32,6 +37,7 @@ impl Test for C {
     }
 }
 
+// we have to write this by hand, there is no way to automatically generate those code.
 fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
     match raw_state.name() {
         "A" => raw_state.as_state::<A>() as &dyn Test,
@@ -48,7 +54,7 @@ fn test_state_lock() {
     //     .try_init();
 
     use std::sync::Arc;
-    let state_lock = Arc::new(StateLock::new("A set"));
+    let state_lock = Arc::new(StateLock::new(STATE_FAMILY));
 
     for _ in 0..1000 {
         may::coroutine::scope(|scope| {

@@ -33,8 +33,8 @@ impl Debug for StateLock {
 }
 
 impl StateLock {
-    /// crate a new state lock with the given state set name.
-    /// it will panic if the state set is not registered.
+    /// crate a new state lock with the given state family name.
+    /// it will panic if the state family is not registered.
     pub fn new(state_family: &str) -> Self {
         let count = crate::registry::state_names(state_family).count();
         StateLock {
@@ -46,7 +46,7 @@ impl StateLock {
         }
     }
 
-    /// return the state set name
+    /// return the state family name
     pub fn state_family(&self) -> &str {
         &self.state_family
     }

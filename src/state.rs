@@ -88,7 +88,7 @@ pub struct RawState<'a> {
     state: Arc<StateWrapper<'a>>,
 }
 
-// unsafe impl<'a> Sync for RawState<'a> {}
+unsafe impl<'a> Sync for RawState<'a> {}
 
 impl<'a> Debug for RawState<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

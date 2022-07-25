@@ -2,6 +2,7 @@ use may::go;
 use state_lock::{State, StateLock, StateRegistration};
 use std::any::Any;
 
+const FAMILY: &str = "StateFamilyA";
 struct A;
 
 impl A {
@@ -22,7 +23,7 @@ impl State for A {
         Self::state_name()
     }
     fn family(&self) -> &'static str {
-        "A set"
+        FAMILY
     }
     fn tear_up() -> Self {
         A
@@ -34,13 +35,14 @@ impl State for A {
 
 state_lock::inventory::submit! {
     StateRegistration {
-        state_family: "A set",
+        state_family: FAMILY,
         state: stringify!(A),
         tear_up_fn: A::make,
     }
 }
 
 #[derive(State, Default)]
+#[family(FAMILY)]
 struct B;
 impl B {
     fn hello(&self) {
@@ -55,7 +57,7 @@ fn test_state_lock() {
         .try_init();
 
     use std::sync::Arc;
-    let state_lock = Arc::new(StateLock::new("A set"));
+    let state_lock = Arc::new(StateLock::new(FAMILY));
     let state_lock_1 = state_lock.clone();
     let state_lock_2 = state_lock.clone();
 

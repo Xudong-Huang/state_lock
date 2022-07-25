@@ -35,7 +35,7 @@ static REGISTERED_STATES: Lazy<RegisteredStateSet> = Lazy::new(|| {
 fn get_state_family(state_family: &str) -> &RegisteredState {
     REGISTERED_STATES
         .get(state_family)
-        .expect("state set not found")
+        .expect("state family not found")
 }
 
 pub fn state_names(state_family: &str) -> impl Iterator<Item = &'static str> + '_ {
