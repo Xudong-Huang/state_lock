@@ -1,5 +1,5 @@
 use may::go;
-use state_lock::{State, StateLock};
+use state_lock::{RawState, State, StateLock};
 
 #[derive(State, Default)]
 struct A;
@@ -9,6 +9,37 @@ struct B;
 
 #[derive(State, Default)]
 struct C;
+
+trait Test {
+    fn hello(&self);
+}
+
+impl Test for A {
+    fn hello(&self) {
+        println!("A is hello");
+    }
+}
+
+impl Test for B {
+    fn hello(&self) {
+        println!("B is hello");
+    }
+}
+
+impl Test for C {
+    fn hello(&self) {
+        println!("C is hello");
+    }
+}
+
+fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
+    match raw_state.name() {
+        "A" => raw_state.as_state::<A>() as &dyn Test,
+        "B" => raw_state.as_state::<B>() as &dyn Test,
+        "C" => raw_state.as_state::<C>() as &dyn Test,
+        state_name => panic!("Unknown state: {}", state_name),
+    }
+}
 
 #[test]
 fn test_state_lock() {
@@ -26,6 +57,8 @@ fn test_state_lock() {
                 go!(scope, move || {
                     let state = state_lock_clone.lock_by_state_name(name).unwrap();
                     println!("state: {:?} waiting done", state);
+                    let test = as_test(&state);
+                    test.hello();
                 });
             });
         });

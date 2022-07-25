@@ -50,7 +50,7 @@ impl<'a> StateWrapper<'a> {
     }
 
     /// return the state name
-    pub(crate) fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &'static str {
         self.state.as_ref().unwrap().name()
     }
 
@@ -95,8 +95,13 @@ impl<'a> RawState<'a> {
     }
 
     /// get the state name
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         self.state.name()
+    }
+
+    /// convert to a concrete state type
+    pub fn as_state<T: State>(&self) -> &T {
+        self.state.downcast()
     }
 
     /// convert to StateGuard
@@ -127,7 +132,7 @@ impl<'a, T: State> Debug for StateGuard<'a, T> {
 
 impl<'a, T: State> StateGuard<'a, T> {
     /// get the state name
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         self.state.name()
     }
 }
