@@ -11,80 +11,86 @@ would not block, else block until the state is ready.
 ## Usage
 ```rust
 use may::go;
-use state_lock::{State, StateLock, StateRegistration};
-use std::any::Any;
+use state_lock::{RawState, State, StateLock};
+
+const STATE_FAMILY: &str = "StateIter";
 
 #[derive(State, Default)]
+#[family(STATE_FAMILY)]
 struct A;
-impl A {
-    fn info(&self) {
-        println!("A info");
+
+#[derive(State, Default)]
+#[family(STATE_FAMILY)]
+struct B;
+
+#[derive(State, Default)]
+#[family("StateIter")]
+struct C;
+
+#[derive(State, Default)]
+#[family("StateIter")]
+struct D;
+
+trait Test {
+    fn hello(&self);
+}
+
+impl Test for A {
+    fn hello(&self) {
+        println!("A is hello");
     }
 }
 
-#[derive(State, Default)]
-struct B;
-impl B {
+impl Test for B {
     fn hello(&self) {
         println!("B is hello");
     }
 }
 
+impl Test for C {
+    fn hello(&self) {
+        println!("C is hello");
+    }
+}
+
+impl Test for D {
+    fn hello(&self) {
+        println!("D is hello");
+    }
+}
+
+// we have to write this by hand, there is no way to automatically generate those code.
+fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
+    match raw_state.name() {
+        "A" => raw_state.as_state::<A>() as &dyn Test,
+        "B" => raw_state.as_state::<B>() as &dyn Test,
+        "C" => raw_state.as_state::<C>() as &dyn Test,
+        "D" => raw_state.as_state::<D>() as &dyn Test,
+        state_name => panic!("Unknown state: {}", state_name),
+    }
+}
+
 fn main() {
-    let _ = env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .try_init();
+    env_logger::init();
 
     use std::sync::Arc;
-    let state_lock = Arc::new(StateLock::new());
-    let state_lock_1 = state_lock.clone();
-    let state_lock_2 = state_lock.clone();
+    let state_lock = Arc::new(StateLock::new(STATE_FAMILY));
 
-    go!(move || {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        let state_a1 = state_lock_2.lock::<A>().unwrap();
-        state_a1.info();
-    });
-
-    go!(move || {
-        let state_b = state_lock_1.lock::<B>().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        state_b.hello();
-        let state_b1 = state_lock_1.lock::<B>().unwrap();
-        state_b1.hello();
-    });
-
-    println!("wait for A");
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let state_a = state_lock.lock::<A>().unwrap();
-    println!("wait for A done");
-    state_a.info();
+    for _ in 0..100 {
+        may::coroutine::scope(|scope| {
+            for _ in 0..100 {
+                state_lock.state_names().for_each(|name| {
+                    let state_lock_clone = state_lock.clone();
+                    go!(scope, move || {
+                        let state = state_lock_clone.lock_by_state_name(name).unwrap();
+                        println!("state: {:?} waiting done", state);
+                        let test = as_test(&state);
+                        test.hello();
+                    });
+                });
+            }
+        });
+        println!("==============================================================");
+    }
 }
-```
-
-## Output
-```
-wait for A
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] B state is set from empty
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state register a waiter ID(6848988010368)
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state is waiting for setup
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state register a waiter ID(18990301453184)
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state is waiting for setup
-B is hello
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] B state is already locked
-B is hello
-[2022-07-22T11:17:50Z DEBUG state_lock::state] B state tear down
-[2022-07-22T11:17:50Z DEBUG state_lock::state] B state is dropped
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] wakeup_next_group for state A
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] wakeup A state, waiter ID(6848988010368)
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state wait done
-wait for A done
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] wakeup A state, waiter ID(18990301453184)
-A info
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state is set from B state
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] A state wait done
-A info
-[2022-07-22T11:17:50Z DEBUG state_lock::state] A state tear down
-[2022-07-22T11:17:50Z DEBUG state_lock::state] A state is dropped
-[2022-07-22T11:17:50Z DEBUG state_lock::lock] state cleared!!!!
 ```
