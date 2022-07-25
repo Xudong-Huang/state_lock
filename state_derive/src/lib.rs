@@ -23,6 +23,9 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
                 fn name(&self) -> &'static str {
                     Self::state_name()
                 }
+                fn family(&self) -> &'static str {
+                    "A set"
+                }
                 fn tear_up() -> Self {
                     Self::default()
                 }
@@ -38,7 +41,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
             state_lock::inventory::submit! {
                 state_lock::StateRegistration {
                     state: stringify!(#struct_ident),
-                    state_set: "A set",
+                    state_family: "A set",
                     tear_up_fn: super::#struct_ident::create_default,
                 }
             }

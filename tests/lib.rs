@@ -21,6 +21,9 @@ impl State for A {
     fn name(&self) -> &'static str {
         Self::state_name()
     }
+    fn family(&self) -> &'static str {
+        "A set"
+    }
     fn tear_up() -> Self {
         A
     }
@@ -31,7 +34,7 @@ impl State for A {
 
 state_lock::inventory::submit! {
     StateRegistration {
-        state_set: "A set",
+        state_family: "A set",
         state: stringify!(A),
         tear_up_fn: A::make,
     }
