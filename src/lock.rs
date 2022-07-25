@@ -92,12 +92,24 @@ impl StateLock {
             debug!("{} state wait done", state_name);
             Ok(RawState::new(state))
         } else {
-            // the last state is just released, check there is no same state waiter
-            assert!(lock.map.get(state_name).is_none());
             // create a new state
             let state = Arc::new(StateWrapper::new_from_name(self, state_name).unwrap());
             lock.state = Some(Arc::downgrade(&state));
+            let waiter_ids = lock.map.remove(state_name);
+            drop(lock);
+
             debug!("{} state is set from empty", state_name);
+            // wake up all waiters waiting for the same state
+            if let Some(ids) = waiter_ids {
+                for waiter_id in ids {
+                    debug!(
+                        "wakeup {} state, waiter {:?} (with same state)",
+                        state_name, waiter_id
+                    );
+                    TokenWaiter::set_rsp(waiter_id, state.clone());
+                }
+            }
+
             Ok(RawState::new(state))
         }
     }
