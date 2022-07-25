@@ -90,7 +90,7 @@ impl StateLock {
             // wait for the state to be setup
             debug!("{} state is waiting for setup", state_name);
             let state = waiter.wait_rsp(None)?;
-            debug!("{} state waite done", state_name);
+            debug!("{} state wait done", state_name);
             Ok(RawState::new(state))
         } else {
             // the last state is just released, check there is no same state waiter

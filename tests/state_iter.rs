@@ -48,10 +48,8 @@ fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
 }
 
 #[test]
-fn test_state_lock() {
-    // let _ = env_logger::builder()
-    //     .filter_level(log::LevelFilter::Debug)
-    //     .try_init();
+fn test_state_iter() {
+    env_logger::init();
 
     use std::sync::Arc;
     let state_lock = Arc::new(StateLock::new(STATE_FAMILY));
