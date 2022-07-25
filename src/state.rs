@@ -56,6 +56,11 @@ impl<'a> StateWrapper<'a> {
         self.state.as_ref().unwrap().name()
     }
 
+    /// return the state family name
+    pub(crate) fn family(&self) -> &'static str {
+        self.state.as_ref().unwrap().family()
+    }
+
     /// downcast to a concrete state type
     pub(crate) fn downcast<T: State>(&self) -> &T {
         let any = self.state.as_ref().unwrap().as_any();
@@ -87,7 +92,12 @@ pub struct RawState<'a> {
 
 impl<'a> Debug for RawState<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RawState{{ {} }}", self.state.name())
+        write!(
+            f,
+            "RawState{{ {}:{} }}",
+            self.state.family(),
+            self.state.name()
+        )
     }
 }
 
@@ -99,6 +109,11 @@ impl<'a> RawState<'a> {
     /// get the state name
     pub fn name(&self) -> &'static str {
         self.state.name()
+    }
+
+    /// get the state family name
+    pub fn family(&self) -> &'static str {
+        self.state.family()
     }
 
     /// convert to a concrete state type
@@ -128,7 +143,12 @@ unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
 
 impl<'a, T: State> Debug for StateGuard<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RawState{{ {} }}", self.state.name())
+        write!(
+            f,
+            "RawState{{ {}:{} }}",
+            self.state.family(),
+            self.state.name()
+        )
     }
 }
 
@@ -136,6 +156,10 @@ impl<'a, T: State> StateGuard<'a, T> {
     /// get the state name
     pub fn name(&self) -> &'static str {
         self.state.name()
+    }
+    /// get the state family name
+    pub fn family(&self) -> &'static str {
+        self.state.family()
     }
 }
 
