@@ -61,6 +61,10 @@ fn test_state_iter() {
                 go!(scope, move || {
                     let state = state_lock_clone.lock_by_state_name(name).unwrap();
                     println!("state: {:?} waiting done", state);
+                    assert_eq!(
+                        Some(state.name()),
+                        state_lock_clone.current_state().map(|s| s.name())
+                    );
                     let test = as_test(&state);
                     test.hello();
                 });

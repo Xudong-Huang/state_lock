@@ -56,6 +56,16 @@ impl StateLock {
         crate::registry::state_names(&self.state_family)
     }
 
+    pub fn current_state(&self) -> Option<RawState> {
+        self.inner
+            .lock()
+            .unwrap()
+            .state
+            .as_ref()
+            .and_then(|s| s.upgrade())
+            .map(RawState::new)
+    }
+
     /// lock for a state by it's name
     /// since we can't get the state type, we have to return a state wrapper
     pub fn lock_by_state_name(&self, state_name: &'static str) -> io::Result<RawState> {
