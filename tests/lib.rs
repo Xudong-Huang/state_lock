@@ -1,5 +1,6 @@
 use may::go;
 use state_lock::{State, StateLock, StateRegistration};
+use std::any::Any;
 
 const FAMILY: &str = "StateFamilyA";
 struct A;
@@ -26,6 +27,9 @@ impl State for A {
     }
     fn tear_up() -> Self {
         A
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
