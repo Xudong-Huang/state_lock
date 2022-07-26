@@ -1,7 +1,8 @@
+use intertrait::CastFrom;
+
 use crate::registry::tear_up_registered_state;
 use crate::StateLock;
 
-use std::any::Any;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -11,7 +12,7 @@ use std::sync::Arc;
 /// a `state` is essentially a type that can be crated by `StateLock`
 /// any task that try to lock the state would block until the state is ready
 /// the task then could get a reference to the state
-pub trait State: Any + Sync {
+pub trait State: CastFrom + Sync {
     /// unique state name, just the type name
     fn state_name() -> &'static str
     where
@@ -31,9 +32,6 @@ pub trait State: Any + Sync {
     fn tear_down(&mut self) {
         debug!("{} state tear down", self.name());
     }
-
-    /// get the state as any type
-    fn as_any(&self) -> &dyn Any;
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
@@ -63,8 +61,12 @@ impl<'a> StateWrapper<'a> {
 
     /// downcast to a concrete state type
     pub(crate) fn downcast<T: State>(&self) -> &T {
-        let any = self.state.as_ref().unwrap().as_any();
+        let any = self.state.as_ref().unwrap().ref_any();
         any.downcast_ref::<T>().expect("wrong state cast")
+    }
+
+    pub fn as_dyn(&self) -> &dyn State {
+        self.state.as_ref().unwrap().as_ref()
     }
 }
 
@@ -88,7 +90,7 @@ pub struct RawState<'a> {
     state: Arc<StateWrapper<'a>>,
 }
 
-unsafe impl<'a> Sync for RawState<'a> {}
+// unsafe impl<'a> Sync for RawState<'a> {}
 
 impl<'a> Debug for RawState<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -116,6 +118,10 @@ impl<'a> RawState<'a> {
         self.state.family()
     }
 
+    pub fn as_dyn(&self) -> &dyn State {
+        self.state.as_dyn()
+    }
+
     /// convert to a concrete state type
     pub fn as_state<T: State>(&self) -> &T {
         self.state.downcast()
@@ -139,7 +145,7 @@ pub struct StateGuard<'a, T: State> {
     _phantom: PhantomData<&'a T>,
 }
 
-unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
+// unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
 
 impl<'a, T: State> Debug for StateGuard<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

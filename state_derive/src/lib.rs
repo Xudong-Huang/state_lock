@@ -37,9 +37,6 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
                 fn tear_up() -> Self {
                     Self::default()
                 }
-                fn as_any(&self) -> &dyn std::any::Any {
-                    self
-                }
             }
             impl super::#struct_ident {
                 fn create_default() -> Box<dyn state_lock::State> {

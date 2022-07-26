@@ -1,5 +1,7 @@
+use intertrait::cast::CastRef;
+use intertrait::cast_to;
 use may::go;
-use state_lock::{RawState, State, StateLock};
+use state_lock::{State, StateLock};
 
 const STATE_FAMILY: &str = "StateIter";
 
@@ -23,24 +25,28 @@ trait Test {
     fn hello(&self);
 }
 
+#[cast_to]
 impl Test for A {
     fn hello(&self) {
         println!("A is hello");
     }
 }
 
+#[cast_to]
 impl Test for B {
     fn hello(&self) {
         println!("B is hello");
     }
 }
 
+#[cast_to]
 impl Test for C {
     fn hello(&self) {
         println!("C is hello");
     }
 }
 
+#[cast_to]
 impl Test for D {
     fn hello(&self) {
         println!("D is hello");
@@ -48,15 +54,19 @@ impl Test for D {
 }
 
 // we have to write this by hand, there is no way to automatically generate those code.
-fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
-    match raw_state.name() {
-        "A" => raw_state.as_state::<A>() as &dyn Test,
-        "B" => raw_state.as_state::<B>() as &dyn Test,
-        "C" => raw_state.as_state::<C>() as &dyn Test,
-        "D" => raw_state.as_state::<D>() as &dyn Test,
-        state_name => panic!("Unknown state: {}", state_name),
-    }
-}
+// you can use `state_names` to get all the states
+// `println!("states: {:?}", state_lock.state_names().collect::<Vec<_>>());`
+// macro_rules! as_dyn {
+//     ($raw_state:expr, $dst:ident) => {
+//         match $raw_state.name() {
+//             stringify!(A) => $raw_state.as_state::<A>() as &dyn $dst,
+//             stringify!(B) => $raw_state.as_state::<B>() as &dyn $dst,
+//             stringify!(C) => $raw_state.as_state::<C>() as &dyn $dst,
+//             stringify!(D) => $raw_state.as_state::<D>() as &dyn $dst,
+//             state_name => panic!("Unknown state: {}", state_name),
+//         }
+//     };
+// }
 
 fn main() {
     env_logger::init();
@@ -77,7 +87,8 @@ fn main() {
                             Some(state.name()),
                             state_lock_clone.current_state().map(|s| s.name())
                         );
-                        let test = as_test(&state);
+                        // let test = as_dyn!(state, Test);
+                        let test = state.as_dyn().cast::<dyn Test>().unwrap();
                         test.hello();
                     });
                 });
@@ -85,4 +96,6 @@ fn main() {
         });
         println!("==============================================================");
     }
+
+    println!("states: {:?}", state_lock.state_names().collect::<Vec<_>>());
 }
