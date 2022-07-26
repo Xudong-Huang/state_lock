@@ -134,11 +134,19 @@ impl StateLock {
     /// wait up all the waiters that are waiting for the state
     pub(crate) fn wakeup_next_group(&self) {
         let mut lock = self.inner.lock().unwrap();
+        {
+            // we already have live state, no need to wakeup
+            if lock.state.as_ref().and_then(|s| s.upgrade()).is_some() {
+                drop(lock);
+                return;
+            }
+        }
+        // have to wake up next group
         if let Some((new_state, waiters)) = lock.map.shift_remove_index(0) {
             debug!("wakeup_next_group to state {}", new_state);
             // create a new state from the id
-            let state = StateWrapper::new_from_name(self, new_state).expect("state name not found");
-            let state = Arc::new(state);
+            let state = StateWrapper::new_from_name(self, new_state);
+            let state = Arc::new(state.expect("state name not found"));
 
             // need first drop the old state
             lock.state.replace(Arc::downgrade(&state));

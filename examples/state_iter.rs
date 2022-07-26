@@ -60,6 +60,7 @@ fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
 
 fn main() {
     env_logger::init();
+    may::config().set_stack_size(6 * 1024);
 
     use std::sync::Arc;
     let state_lock = Arc::new(StateLock::new(STATE_FAMILY));
