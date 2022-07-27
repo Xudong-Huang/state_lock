@@ -31,7 +31,7 @@ pub trait State: CastFrom + Sync {
 
     /// tear down the state, just drop the state
     fn tear_down(&mut self) {
-        debug!("{} state tear down", self.name());
+        trace!("{} state tear down", self.name());
     }
 
     /// get the state as any type
@@ -81,7 +81,7 @@ impl<'a> Drop for StateWrapper<'a> {
         let old_state = state.name();
         // we should drop the old state completely before setup the new state
         drop(state);
-        debug!("{} state is dropped", old_state);
+        trace!("{} state is dropped", old_state);
 
         self.state_lock.wakeup_next_group();
     }
