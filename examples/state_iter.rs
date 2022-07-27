@@ -87,8 +87,7 @@ fn main() {
                             Some(state.name()),
                             state_lock_clone.current_state().map(|s| s.name())
                         );
-                        // let test = as_dyn!(state, Test);
-                        let test = state.as_dyn().cast::<dyn Test>().unwrap();
+                        let test = state.as_dyn_state().cast::<dyn Test>().unwrap();
                         test.hello();
                     });
                 });

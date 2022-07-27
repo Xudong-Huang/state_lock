@@ -69,7 +69,7 @@ impl<'a> StateWrapper<'a> {
         any.downcast_ref::<T>().expect("wrong state cast")
     }
 
-    pub fn as_dyn(&self) -> &dyn State {
+    fn as_dyn_state(&self) -> &dyn State {
         self.state.as_ref().unwrap().as_ref()
     }
 }
@@ -122,8 +122,8 @@ impl<'a> RawState<'a> {
         self.state.family()
     }
 
-    pub fn as_dyn(&self) -> &dyn State {
-        self.state.as_dyn()
+    pub fn as_dyn_state(&self) -> &dyn State {
+        self.state.as_dyn_state()
     }
 
     /// convert to a concrete state type
