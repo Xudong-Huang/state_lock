@@ -11,7 +11,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
     // eprintln!("==========================================================");
     let struct_ident = ast.ident;
 
-    let impl_mod = syn::Ident::new(&format!("{}_impl", struct_ident), struct_ident.span());
+    let impl_mod = syn::Ident::new(&format!("{}_state_lock_impl", struct_ident), struct_ident.span());
 
     let family_attr = get_attr("family", ast.attrs);
     let family = match get_family_from_attr(family_attr) {

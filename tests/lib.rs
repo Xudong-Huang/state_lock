@@ -7,7 +7,7 @@ struct A;
 
 impl A {
     fn make() -> Box<dyn State> {
-        Box::new(A)
+        Box::new(A::tear_up())
     }
 
     fn info(&self) {

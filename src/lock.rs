@@ -10,7 +10,7 @@ use std::sync::{Arc, Weak};
 
 struct StateLockInner {
     // waiter map, key is the state type id, value is the waiter
-    map: IndexMap<&'static str, Vec<ID>>,
+    map: IndexMap<String, Vec<ID>>,
     // track the current state, static life time for self ref
     state: Option<Weak<StateWrapper<'static>>>,
 }
@@ -68,7 +68,7 @@ impl StateLock {
 
     /// lock for a state by it's name
     /// since we can't get the state type, we have to return a state wrapper
-    pub fn lock_by_state_name(&self, state_name: &'static str) -> io::Result<RawState> {
+    pub fn lock_by_state_name(&self, state_name: &str) -> io::Result<RawState> {
         if !self.state_names().any(|name| name == state_name) {
             let err_msg = format!("state {} is not registered", state_name);
             return Err(io::Error::new(io::ErrorKind::Other, err_msg));
@@ -84,7 +84,10 @@ impl StateLock {
 
             // we have to wait until the state is setup
             let waiter = TokenWaiter::new();
-            let waiters = lock.map.entry(state_name).or_insert_with(Vec::new);
+            let waiters = lock
+                .map
+                .entry(state_name.to_string())
+                .or_insert_with(Vec::new);
 
             // insert the waiter into the waiters queue
             let id = waiter.id().unwrap();
@@ -145,7 +148,7 @@ impl StateLock {
         if let Some((new_state, waiters)) = lock.map.shift_remove_index(0) {
             debug!("wakeup_next_group to state {}", new_state);
             // create a new state from the id
-            let state = StateWrapper::new_from_name(self, new_state);
+            let state = StateWrapper::new_from_name(self, &new_state);
             let state = Arc::new(state.expect("state name not found"));
 
             // need first drop the old state
