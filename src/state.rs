@@ -141,7 +141,7 @@ impl<'a> RawState<'a> {
     }
 }
 
-/// state guard that can access the shared state
+/// state guard that can access the shared state with concrete type
 pub struct StateGuard<'a, T: State> {
     // we use `Arc` to track the state references
     // when all `StateWrapper`s are dropped, the state would be tear_down

@@ -9,7 +9,7 @@ use std::io;
 use std::sync::{Arc, Weak};
 
 struct StateLockInner {
-    // waiter map, key is the state type id, value is the waiter
+    // waiter map, key is the state name, value is the waiters
     map: IndexMap<String, Vec<ID>>,
     // track the current state, static life time for self ref
     state: Option<Weak<StateWrapper<'static>>>,
@@ -56,6 +56,8 @@ impl StateLock {
         crate::registry::state_names(&self.state_family)
     }
 
+    /// get current state of the state lock
+    /// if no task lock it, return None, or we return a `RawState`
     pub fn current_state(&self) -> Option<RawState> {
         self.inner
             .lock()
