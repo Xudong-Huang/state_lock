@@ -23,6 +23,6 @@ may_waiter = "0.1"
 intertrait = "0.2"
 state_derive = { path = "state_derive" }
 
-[dev_dependencies]
+[dev-dependencies]
 linkme = "0.2"
 env_logger = "0.9"
