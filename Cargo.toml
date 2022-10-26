@@ -20,9 +20,9 @@ indexmap = "1"
 once_cell = "1"
 inventory = "0.3"
 may_waiter = "0.1"
-intertrait = "0.2"
+intertrait = { git = "https://github.com/Xudong-Huang/intertrait.git"}
 state_derive = { path = "state_derive" }
 
 [dev-dependencies]
-linkme = "0.2"
+linkme = "0.3"
 env_logger = "0.9"
