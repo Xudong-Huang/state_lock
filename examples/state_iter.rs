@@ -1,6 +1,6 @@
-use intertrait::cast::CastRef;
-use intertrait::cast_to;
 use may::go;
+use state_lock::intertrait::cast::CastRef;
+use state_lock::intertrait::cast_to;
 use state_lock::{State, StateLock};
 
 const STATE_FAMILY: &str = "StateIter";
