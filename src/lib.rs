@@ -18,10 +18,13 @@ mod lock;
 pub use lock::StateLock;
 
 mod registry;
-pub use registry::StateRegistration;
+pub use registry::{StateRegistration, STATE_REGISTRATION};
 
 // re-export #[derive(State)] for convenience
 pub use state_derive::State;
 
 // re-export inventory
-pub use inventory;
+pub use linkme;
+
+// re-export inventory
+pub use intertrait;

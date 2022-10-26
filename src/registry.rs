@@ -14,14 +14,15 @@ pub struct StateRegistration {
     pub tear_up_fn: fn() -> Box<dyn State>,
 }
 
-inventory::collect!(StateRegistration);
+#[linkme::distributed_slice]
+pub static STATE_REGISTRATION: [StateRegistration] = [..];
 
 type RegisteredState = BTreeMap<&'static str, fn() -> Box<dyn State>>;
 type RegisteredStateSet = BTreeMap<&'static str, RegisteredState>;
 // state registration
 static REGISTERED_STATES: Lazy<RegisteredStateSet> = Lazy::new(|| {
     let mut map = BTreeMap::new();
-    for registered in inventory::iter::<StateRegistration> {
+    for registered in STATE_REGISTRATION {
         let state_map = map
             .entry(registered.state_family)
             .or_insert_with(BTreeMap::new);

@@ -1,5 +1,5 @@
 use may::go;
-use state_lock::{State, StateLock, StateRegistration};
+use state_lock::{State, StateLock};
 use std::any::Any;
 
 const FAMILY: &str = "StateFamilyA";
@@ -33,13 +33,12 @@ impl State for A {
     }
 }
 
-state_lock::inventory::submit! {
-    StateRegistration {
-        state_family: FAMILY,
-        state: stringify!(A),
-        tear_up_fn: A::make,
-    }
-}
+#[state_lock::linkme::distributed_slice(state_lock::STATE_REGISTRATION)]
+static STATE_A: state_lock::StateRegistration = state_lock::StateRegistration {
+    state_family: FAMILY,
+    state: stringify!(A),
+    tear_up_fn: A::make,
+};
 
 #[derive(State, Default)]
 #[family(FAMILY)]

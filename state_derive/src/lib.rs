@@ -11,7 +11,10 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
     // eprintln!("==========================================================");
     let struct_ident = ast.ident;
 
-    let impl_mod = syn::Ident::new(&format!("{}_state_lock_impl", struct_ident), struct_ident.span());
+    let impl_mod = syn::Ident::new(
+        &format!("{}_state_lock_impl", struct_ident),
+        struct_ident.span(),
+    );
 
     let family_attr = get_attr("family", ast.attrs);
     let family = match get_family_from_attr(family_attr) {
@@ -46,13 +49,13 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
                     Box::new(Self::default())
                 }
             }
-            state_lock::inventory::submit! {
-                state_lock::StateRegistration {
-                    state: stringify!(#struct_ident),
-                    state_family: #family,
-                    tear_up_fn: super::#struct_ident::create_default,
-                }
-            }
+
+            #[state_lock::linkme::distributed_slice(state_lock::STATE_REGISTRATION)]
+            static STATE: state_lock::StateRegistration = state_lock::StateRegistration {
+                state: stringify!(#struct_ident),
+                state_family: #family,
+                tear_up_fn: super::#struct_ident::create_default,
+            };
         }
     );
     // eprintln!("{}", out);
