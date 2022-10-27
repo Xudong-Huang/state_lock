@@ -17,6 +17,7 @@ struct StateLockInner {
 
 unsafe impl Send for StateLockInner {}
 
+type CustomTearUp = Box<dyn Fn(&str) -> Box<dyn State> + Send + Sync>;
 /// `StateLock` that could be used to lock for a state.
 ///
 /// After call `StateLock::lock` a `StateGuard` would be returned,
@@ -24,6 +25,7 @@ unsafe impl Send for StateLockInner {}
 pub struct StateLock {
     inner: Mutex<StateLockInner>,
     state_family: String,
+    pub(crate) custom_tear_up: Option<CustomTearUp>,
 }
 
 impl Debug for StateLock {
@@ -35,6 +37,7 @@ impl Debug for StateLock {
 impl StateLock {
     /// crate a new state lock with the given state family name.
     /// it will panic if the state family is not registered.
+    /// all the state should impl `Default` for tear up logic
     pub fn new(state_family: &str) -> Self {
         let count = crate::registry::state_names(state_family).count();
         StateLock {
@@ -43,6 +46,23 @@ impl StateLock {
                 state: None,
             }),
             state_family: state_family.into(),
+            custom_tear_up: None,
+        }
+    }
+
+    /// create a state lock with user specified tear-up logic
+    pub fn new_with_custom_tear_up<F>(state_family: &str, tear_up: F) -> Self
+    where
+        F: Fn(&str) -> Box<dyn State> + Send + Sync + 'static,
+    {
+        let count = crate::registry::state_names(state_family).count();
+        StateLock {
+            inner: Mutex::new(StateLockInner {
+                map: IndexMap::with_capacity(count),
+                state: None,
+            }),
+            state_family: state_family.into(),
+            custom_tear_up: Some(Box::new(tear_up)),
         }
     }
 

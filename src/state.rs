@@ -48,7 +48,11 @@ pub(crate) struct StateWrapper<'a> {
 
 impl<'a> StateWrapper<'a> {
     pub(crate) fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
-        let state = Some(tear_up_registered_state(state_lock.state_family(), name)?);
+        let state = if let Some(custom_tear_up) = state_lock.custom_tear_up.as_ref() {
+            Some(custom_tear_up(name))
+        } else {
+            Some(tear_up_registered_state(state_lock.state_family(), name)?)
+        };
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
     }
@@ -100,7 +104,7 @@ impl<'a> Debug for RawState<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "RawState{{ {}:{} }}",
+            "RawState{{ {}: {} }}",
             self.state.family(),
             self.state.name()
         )
@@ -155,7 +159,7 @@ impl<'a, T: State> Debug for StateGuard<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "RawState{{ {}:{} }}",
+            "RawState{{ {}: {} }}",
             self.state.family(),
             self.state.name()
         )

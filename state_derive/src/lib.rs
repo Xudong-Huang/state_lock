@@ -38,7 +38,8 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
                     #family
                 }
                 fn tear_up() -> Self {
-                    Self::default()
+                    use state_lock::default::{HasDefault, NoDefaultImplement};
+                    HasDefault::<Self>::tear_up()
                 }
                 fn as_any(&self) -> &dyn std::any::Any {
                     self
@@ -46,7 +47,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
             }
             impl super::#struct_ident {
                 fn create_default() -> Box<dyn state_lock::State> {
-                    Box::new(Self::default())
+                    Box::new(Self::tear_up())
                 }
             }
 

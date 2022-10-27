@@ -11,6 +11,8 @@
 #[macro_use]
 extern crate log;
 
+pub mod default;
+
 mod state;
 pub use state::{RawState, State, StateGuard};
 
