@@ -34,6 +34,7 @@ impl State for A {
 }
 
 #[state_lock::linkme::distributed_slice(state_lock::STATE_REGISTRATION)]
+#[linkme(crate = state_lock::linkme)]
 static STATE_A: state_lock::StateRegistration = state_lock::StateRegistration {
     state_family: FAMILY,
     state: stringify!(A),

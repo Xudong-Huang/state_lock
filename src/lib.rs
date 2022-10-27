@@ -23,8 +23,8 @@ pub use registry::{StateRegistration, STATE_REGISTRATION};
 // re-export #[derive(State)] for convenience
 pub use state_derive::State;
 
-// re-export inventory
-pub use linkme;
+// re-export linkme
+pub use intertrait::linkme;
 
-// re-export inventory
+// re-export intertrait
 pub use intertrait;

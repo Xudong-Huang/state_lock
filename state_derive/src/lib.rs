@@ -51,6 +51,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
             }
 
             #[state_lock::linkme::distributed_slice(state_lock::STATE_REGISTRATION)]
+            #[linkme(crate = state_lock::linkme)]
             static STATE: state_lock::StateRegistration = state_lock::StateRegistration {
                 state: stringify!(#struct_ident),
                 state_family: #family,

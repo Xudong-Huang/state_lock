@@ -14,7 +14,8 @@ pub struct StateRegistration {
     pub tear_up_fn: fn() -> Box<dyn State>,
 }
 
-#[linkme::distributed_slice]
+#[intertrait::linkme::distributed_slice]
+#[linkme(crate = intertrait::linkme)]
 pub static STATE_REGISTRATION: [StateRegistration] = [..];
 
 type RegisteredState = BTreeMap<&'static str, fn() -> Box<dyn State>>;
