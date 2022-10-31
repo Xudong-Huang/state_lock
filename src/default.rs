@@ -4,7 +4,10 @@ pub trait NoDefaultImplement: Sized {
     type Ty;
     const HAS_DEFAULT: bool = false;
     fn tear_up() -> Self::Ty {
-        unimplemented!("Default is not implemented for this type")
+        unimplemented!(
+            "Default is not implemented for this type {}",
+            std::any::type_name::<Self::Ty>()
+        )
     }
 }
 
