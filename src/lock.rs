@@ -17,7 +17,9 @@ struct StateLockInner {
 
 unsafe impl Send for StateLockInner {}
 
-type CustomTearUp = Box<dyn Fn(&str) -> Box<dyn State> + Send + Sync>;
+/// custom state tear up, input is state name
+pub type CustomTearUpFn = Box<dyn Fn(&str) -> Box<dyn State> + Send + Sync>;
+
 /// `StateLock` that could be used to lock for a state.
 ///
 /// After call `StateLock::lock` a `StateGuard` would be returned,
@@ -25,7 +27,7 @@ type CustomTearUp = Box<dyn Fn(&str) -> Box<dyn State> + Send + Sync>;
 pub struct StateLock {
     inner: Mutex<StateLockInner>,
     state_family: String,
-    pub(crate) custom_tear_up: Option<CustomTearUp>,
+    pub(crate) custom_tear_up: Option<CustomTearUpFn>,
 }
 
 impl Debug for StateLock {

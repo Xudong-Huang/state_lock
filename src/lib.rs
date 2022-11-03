@@ -17,7 +17,7 @@ mod state;
 pub use state::{RawState, State, StateGuard};
 
 mod lock;
-pub use lock::StateLock;
+pub use lock::{CustomTearUpFn, StateLock};
 
 mod registry;
 pub use registry::{StateRegistration, STATE_REGISTRATION};
