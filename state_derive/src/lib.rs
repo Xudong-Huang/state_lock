@@ -29,8 +29,6 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
         Ok(f) => f,
     };
 
-
-
     let out = quote!(
         pub use #impl_mod::*;
         #[allow(non_snake_case)]
