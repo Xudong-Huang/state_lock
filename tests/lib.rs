@@ -62,7 +62,7 @@ fn test_state_lock() {
     let state_lock_2 = state_lock.clone();
 
     state_lock.state_names().for_each(|name| {
-        println!("state name: {}", name);
+        println!("state name: {name}");
     });
 
     go!(move || {

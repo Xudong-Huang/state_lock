@@ -59,7 +59,7 @@ fn make_test(state_name: &str) -> Box<dyn State> {
         stringify!(B) => Box::new(B),
         stringify!(C) => Box::new(C),
         stringify!(D) => Box::new(D),
-        other => panic!("could create for state: {}", other),
+        other => panic!("could create for state: {other}"),
     }
 }
 
@@ -77,7 +77,7 @@ fn main() {
                     let state_lock_clone = state_lock.clone();
                     go!(scope, move || {
                         let state = state_lock_clone.lock_by_state_name(name).unwrap();
-                        println!("state: {:?} waiting done", state);
+                        println!("state: {state:?} waiting done");
                         assert_eq!(
                             Some(state.name()),
                             state_lock_clone.current_state().map(|s| s.name())

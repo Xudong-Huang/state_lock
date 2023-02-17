@@ -23,4 +23,4 @@ state_derive = { path = "state_derive" }
 intertrait = { git = "https://github.com/Xudong-Huang/intertrait.git" }
 
 [dev-dependencies]
-env_logger = "0.9"
+env_logger = "0.10"

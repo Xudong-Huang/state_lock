@@ -43,7 +43,7 @@ fn as_test<'a>(raw_state: &'a RawState) -> &'a dyn Test {
         "A" => raw_state.as_state::<A>() as &dyn Test,
         "B" => raw_state.as_state::<B>() as &dyn Test,
         "C" => raw_state.as_state::<C>() as &dyn Test,
-        state_name => panic!("Unknown state: {}", state_name),
+        state_name => panic!("Unknown state: {state_name}"),
     }
 }
 
@@ -60,7 +60,7 @@ fn test_state_iter() {
                 let state_lock_clone = state_lock.clone();
                 go!(scope, move || {
                     let state = state_lock_clone.lock_by_state_name(name).unwrap();
-                    println!("state: {:?} waiting done", state);
+                    println!("state: {state:?} waiting done");
                     assert_eq!(
                         Some(state.name()),
                         state_lock_clone.current_state().map(|s| s.name())

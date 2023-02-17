@@ -13,7 +13,7 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
     let struct_ident = ast.ident;
 
     let impl_mod = syn::Ident::new(
-        &format!("{}_state_lock_impl", struct_ident),
+        &format!("{struct_ident}_state_lock_impl"),
         struct_ident.span(),
     );
 

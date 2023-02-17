@@ -94,7 +94,7 @@ impl StateLock {
     /// since we can't get the state type, we have to return a state wrapper
     pub fn lock_by_state_name(&self, state_name: &str) -> io::Result<RawState> {
         if !self.state_names().any(|name| name == state_name) {
-            let err_msg = format!("state {} is not registered", state_name);
+            let err_msg = format!("state {state_name} is not registered");
             return Err(io::Error::new(io::ErrorKind::Other, err_msg));
         }
 
