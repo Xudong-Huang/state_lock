@@ -19,8 +19,8 @@ struct StateLockInner {
 
 impl StateLockInner {
     /// get last state name
-    fn last_state_name(&self) -> Option<&str> {
-        self.last_state.as_ref().map(|s| s.name())
+    fn last_state_name(&self) -> &str {
+        self.last_state.as_ref().map(|s| s.name()).unwrap_or("")
     }
 
     /// clear the last stat
@@ -157,18 +157,15 @@ impl StateLock {
             trace!("{} state wait done", state_name);
             Ok(RawState::new(state))
         } else {
-            let state = (|| {
-                if let Some(name) = lock.last_state_name() {
-                    if name == state_name {
-                        // we have to drop the last state before setup the new state
-                        return Arc::new(StateWrapper::new(self, lock.last_state.take()));
-                    }
-                }
+            let state = if state_name == lock.last_state_name() {
+                // reuse the last state
+                Arc::new(StateWrapper::new(self, lock.last_state.take()))
+            } else {
                 // first clear the last state if any
                 lock.drop_last_state();
                 // create a new state
                 Arc::new(StateWrapper::new_from_name(self, state_name).unwrap())
-            })();
+            };
 
             lock.state = Some(Arc::downgrade(&state));
             let waiter_ids = lock.map.remove(state_name);
