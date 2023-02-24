@@ -13,6 +13,26 @@ struct StateLockInner {
     map: IndexMap<String, Vec<ID>>,
     // track the current state, static life time for self ref
     state: Option<Weak<StateWrapper<'static>>>,
+    // track the last state, could be reused
+    last_state: Option<Box<dyn State>>,
+}
+
+impl StateLockInner {
+    /// get last state name
+    fn last_state_name(&self) -> Option<&str> {
+        self.last_state.as_ref().map(|s| s.name())
+    }
+
+    /// clear the last stat
+    fn drop_last_state(&mut self) {
+        if let Some(mut state) = self.last_state.take() {
+            state.tear_down();
+            let old_state = state.name();
+            // we should drop the old state completely before setup the new state
+            drop(state);
+            trace!("{} state is dropped", old_state);
+        }
+    }
 }
 
 unsafe impl Send for StateLockInner {}
@@ -46,6 +66,7 @@ impl StateLock {
             inner: Mutex::new(StateLockInner {
                 map: IndexMap::with_capacity(count),
                 state: None,
+                last_state: None,
             }),
             state_family: state_family.into(),
             custom_tear_up: None,
@@ -62,10 +83,17 @@ impl StateLock {
             inner: Mutex::new(StateLockInner {
                 map: IndexMap::with_capacity(count),
                 state: None,
+                last_state: None,
             }),
             state_family: state_family.into(),
             custom_tear_up: Some(Box::new(tear_up)),
         }
+    }
+
+    /// save the last state
+    pub fn save_last_state(&self, state: Box<dyn State>) {
+        let mut lock = self.inner.lock().unwrap();
+        lock.last_state = Some(state);
     }
 
     /// return the state family name
@@ -129,8 +157,19 @@ impl StateLock {
             trace!("{} state wait done", state_name);
             Ok(RawState::new(state))
         } else {
-            // create a new state
-            let state = Arc::new(StateWrapper::new_from_name(self, state_name).unwrap());
+            let state = (|| {
+                if let Some(name) = lock.last_state_name() {
+                    if name == state_name {
+                        // we have to drop the last state before setup the new state
+                        return Arc::new(StateWrapper::new(self, lock.last_state.take()));
+                    }
+                }
+                // first clear the last state if any
+                lock.drop_last_state();
+                // create a new state
+                Arc::new(StateWrapper::new_from_name(self, state_name).unwrap())
+            })();
+
             lock.state = Some(Arc::downgrade(&state));
             let waiter_ids = lock.map.remove(state_name);
             drop(lock);
@@ -172,6 +211,8 @@ impl StateLock {
         // have to wake up next group
         if let Some((new_state, waiters)) = lock.map.shift_remove_index(0) {
             trace!("wakeup_next_group to state {}", new_state);
+            // first clear the last state if any
+            lock.drop_last_state();
             // create a new state from the id
             let state = StateWrapper::new_from_name(self, &new_state);
             let state = Arc::new(state.expect("state name not found"));

@@ -47,6 +47,11 @@ pub(crate) struct StateWrapper<'a> {
 }
 
 impl<'a> StateWrapper<'a> {
+    pub(crate) fn new(state_lock: &StateLock, state: Option<Box<dyn State>>) -> Self {
+        // it's safe to eliminate the life time here, basically they are equal
+        unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
+    }
+
     pub(crate) fn new_from_name(state_lock: &StateLock, name: &str) -> Option<Self> {
         let state = if let Some(custom_tear_up) = state_lock.custom_tear_up.as_ref() {
             Some(custom_tear_up(name))
@@ -80,13 +85,8 @@ impl<'a> StateWrapper<'a> {
 
 impl<'a> Drop for StateWrapper<'a> {
     fn drop(&mut self) {
-        let mut state = self.state.take().unwrap();
-        state.tear_down();
-        let old_state = state.name();
-        // we should drop the old state completely before setup the new state
-        drop(state);
-        trace!("{} state is dropped", old_state);
-
+        let state = self.state.take().unwrap();
+        self.state_lock.save_last_state(state);
         self.state_lock.wakeup_next_group();
     }
 }
