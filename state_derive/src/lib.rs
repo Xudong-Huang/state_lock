@@ -84,24 +84,25 @@ fn attr_error<T: quote::ToTokens>(tokens: T, message: &str) -> syn::Error {
 fn get_attr(attr_ident: &str, attrs: Vec<syn::Attribute>) -> Option<syn::Attribute> {
     attrs
         .into_iter()
-        .find(|attr| attr.path.segments.len() == 1 && attr.path.segments[0].ident == attr_ident)
+        .find(|attr| attr.path().segments.len() == 1 && attr.path().segments[0].ident == attr_ident)
 }
 
-fn get_family_from_attr(attr: Option<syn::Attribute>) -> Result<syn::NestedMeta> {
+fn get_family_from_attr(attr: Option<syn::Attribute>) -> Result<proc_macro2::TokenStream> {
     if attr.is_none() {
         bail!(attr, "expected `family(state_family)`");
     }
 
-    let meta = attr.unwrap().parse_meta();
+    let meta = attr.unwrap().meta;
     // eprintln!("{:#?}", meta);
     match meta {
-        Ok(syn::Meta::List(meta_list)) => {
+        syn::Meta::List(meta_list) => {
             // We expect only one expression
-            if meta_list.nested.len() != 1 {
-                bail!(meta_list.nested, "expected `family(state_family)`");
+            if meta_list.path.segments.len() != 1 || meta_list.path.segments[0].ident != "family" {
+                bail!(meta_list, "expected `family(state_family)`");
             }
+
             // Expecting `family()`
-            Ok(meta_list.nested[0].clone())
+            Ok(meta_list.tokens)
         }
         _ => bail!("", "expected `family(state_family)`"),
     }
@@ -113,7 +114,7 @@ fn state_lock_path(attrs: &mut Vec<Attribute>) -> Result<Path> {
     let mut errors: Option<Error> = None;
 
     attrs.retain(|attr| {
-        if !attr.path.is_ident("state_lock") {
+        if !attr.path().is_ident("state_lock") {
             return true;
         }
         match attr.parse_args_with(|input: ParseStream| {
