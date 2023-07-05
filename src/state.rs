@@ -46,6 +46,8 @@ pub(crate) struct StateWrapper<'a> {
     state: Option<Box<dyn State>>,
 }
 
+unsafe impl<'a> Send for StateWrapper<'a> {}
+
 impl<'a> StateWrapper<'a> {
     pub(crate) fn new(state_lock: &StateLock, state: Option<Box<dyn State>>) -> Self {
         // it's safe to eliminate the life time here, basically they are equal
