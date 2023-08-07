@@ -139,7 +139,7 @@ impl StateLock {
             let waiters = lock
                 .map
                 .entry(state_name.to_string())
-                .or_insert_with(Vec::new);
+                .or_default();
 
             // insert the waiter into the waiters queue
             let id = waiter.id().unwrap();
