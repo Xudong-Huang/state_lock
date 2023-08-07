@@ -136,10 +136,7 @@ impl StateLock {
 
             // we have to wait until the state is setup
             let waiter = TokenWaiter::new();
-            let waiters = lock
-                .map
-                .entry(state_name.to_string())
-                .or_default();
+            let waiters = lock.map.entry(state_name.to_string()).or_default();
 
             // insert the waiter into the waiters queue
             let id = waiter.id().unwrap();
