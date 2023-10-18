@@ -3,7 +3,6 @@ use intertrait::CastFrom;
 use crate::registry::tear_up_registered_state;
 use crate::StateLock;
 
-use std::any::Any;
 use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -33,9 +32,6 @@ pub trait State: CastFrom + Sync {
     fn tear_down(&mut self) {
         trace!("{} state tear down", self.name());
     }
-
-    /// get the state as any type
-    fn as_any(&self) -> &dyn Any;
 }
 
 /// internal state wrapper that would call tear_down automatically when dropped
@@ -76,7 +72,10 @@ impl<'a> StateWrapper<'a> {
 
     /// downcast to a concrete state type
     pub(crate) fn downcast<T: State>(&self) -> &T {
-        let any = self.state.as_ref().unwrap().as_any();
+        let any = match self.state.as_ref() {
+            Some(s) => s.as_ref().ref_any(),
+            None => panic!("no state found"),
+        };
         any.downcast_ref::<T>().expect("wrong state cast")
     }
 

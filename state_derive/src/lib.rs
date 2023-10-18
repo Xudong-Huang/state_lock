@@ -48,9 +48,6 @@ pub fn derive_state(input: TokenStream) -> TokenStream {
                     use #state_lock_path::default::{HasDefault, NoDefaultImplement};
                     HasDefault::<Self>::tear_up()
                 }
-                fn as_any(&self) -> &dyn std::any::Any {
-                    self
-                }
             }
             impl super::#struct_ident {
                 fn create_default() -> Box<dyn #state_lock_path::State> {
