@@ -114,11 +114,12 @@ fn state_lock_path(attrs: &mut Vec<Attribute>) -> Result<Path> {
         if !attr.path().is_ident("state_lock") {
             return true;
         }
-        match attr.parse_args_with(|input: ParseStream| {
+        let args = attr.parse_args_with(|input: ParseStream| {
             input.parse::<Token![crate]>()?;
             input.parse::<Token![=]>()?;
             input.call(Path::parse_mod_style)
-        }) {
+        });
+        match args {
             Ok(path) => state_lock_path = Some(path),
             Err(err) => match &mut errors {
                 None => errors = Some(err),
