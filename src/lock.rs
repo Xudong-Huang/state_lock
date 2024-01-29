@@ -165,7 +165,7 @@ impl StateLock {
             };
 
             lock.state = Some(Arc::downgrade(&state));
-            let waiter_ids = lock.map.remove(state_name);
+            let waiter_ids = lock.map.swap_remove(state_name);
             drop(lock);
 
             trace!("{} state is set from empty", state_name);
