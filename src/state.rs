@@ -9,6 +9,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 /// any type that impl `State` can be used by `StateLock`
+///
 /// a `state` is essentially a type that can be crated by `StateLock`
 /// any task that try to lock the state would block until the state is ready
 /// the task then could get a reference to the state
