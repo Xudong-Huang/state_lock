@@ -1,5 +1,4 @@
 /// we use special technique to avoid unstable specialization feature
-
 pub trait NoDefaultImplement: Sized {
     type Ty;
     const HAS_DEFAULT: bool = false;

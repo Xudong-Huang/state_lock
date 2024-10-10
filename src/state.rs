@@ -43,9 +43,9 @@ pub(crate) struct StateWrapper<'a> {
     state: Option<Box<dyn State>>,
 }
 
-unsafe impl<'a> Send for StateWrapper<'a> {}
+unsafe impl Send for StateWrapper<'_> {}
 
-impl<'a> StateWrapper<'a> {
+impl StateWrapper<'_> {
     pub(crate) fn new(state_lock: &StateLock, state: Option<Box<dyn State>>) -> Self {
         // it's safe to eliminate the life time here, basically they are equal
         unsafe { std::mem::transmute(StateWrapper { state_lock, state }) }
@@ -85,7 +85,7 @@ impl<'a> StateWrapper<'a> {
     }
 }
 
-impl<'a> Drop for StateWrapper<'a> {
+impl Drop for StateWrapper<'_> {
     fn drop(&mut self) {
         let state = self.state.take().unwrap();
         self.state_lock.save_last_state(state);
@@ -102,7 +102,7 @@ pub struct RawState<'a> {
 
 // unsafe impl<'a> Sync for RawState<'a> {}
 
-impl<'a> Debug for RawState<'a> {
+impl Debug for RawState<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -157,7 +157,7 @@ pub struct StateGuard<'a, T: State> {
 
 // unsafe impl<'a, T: State> Sync for StateGuard<'a, T> {}
 
-impl<'a, T: State> Debug for StateGuard<'a, T> {
+impl<T: State> Debug for StateGuard<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -168,7 +168,7 @@ impl<'a, T: State> Debug for StateGuard<'a, T> {
     }
 }
 
-impl<'a, T: State> StateGuard<'a, T> {
+impl<T: State> StateGuard<'_, T> {
     /// get the state name
     pub fn name(&self) -> &'static str {
         self.state.name()
@@ -179,7 +179,7 @@ impl<'a, T: State> StateGuard<'a, T> {
     }
 }
 
-impl<'a, T: State> Deref for StateGuard<'a, T> {
+impl<T: State> Deref for StateGuard<'_, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         self.state.downcast()
