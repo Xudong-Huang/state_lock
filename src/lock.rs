@@ -123,7 +123,7 @@ impl StateLock {
     pub fn lock_by_state_name(&self, state_name: &str) -> io::Result<RawState> {
         if !self.state_names().any(|name| name == state_name) {
             let err_msg = format!("state {state_name} is not registered");
-            return Err(io::Error::new(io::ErrorKind::Other, err_msg));
+            return Err(io::Error::other(err_msg));
         }
 
         let mut lock = self.inner.lock().unwrap();
