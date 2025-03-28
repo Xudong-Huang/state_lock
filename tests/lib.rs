@@ -57,6 +57,8 @@ fn test_state_lock() {
     let state_lock_1 = state_lock.clone();
     let state_lock_2 = state_lock.clone();
 
+    println!("state lock: {:?}", state_lock);
+
     state_lock.state_names().for_each(|name| {
         println!("state name: {name}");
     });
@@ -64,6 +66,7 @@ fn test_state_lock() {
     go!(move || {
         std::thread::sleep(std::time::Duration::from_millis(100));
         let state_a1 = state_lock_2.lock::<A>().unwrap();
+        println!("state lock: {:?}", state_lock_2);
         state_a1.info();
     });
 
@@ -72,6 +75,7 @@ fn test_state_lock() {
         std::thread::sleep(std::time::Duration::from_millis(200));
         state_b.hello();
         let state_b1 = state_lock_1.lock::<B>().unwrap();
+        println!("state lock: {:?}", state_lock_1);
         state_b1.hello();
     });
 
@@ -80,4 +84,6 @@ fn test_state_lock() {
     let state_a = state_lock.lock::<A>().unwrap();
     println!("wait for A done");
     state_a.info();
+
+    println!("state lock: {:?}", state_lock);
 }

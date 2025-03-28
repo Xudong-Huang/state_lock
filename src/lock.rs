@@ -52,7 +52,10 @@ pub struct StateLock {
 
 impl Debug for StateLock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "WaiterMap{{ ... }}")
+        f.debug_struct("StateLock")
+            .field("state_family", &self.state_family)
+            .field("current_state", &self.current_state().map(|s| s.name()))
+            .finish()
     }
 }
 
@@ -91,7 +94,7 @@ impl StateLock {
     }
 
     /// save the last state
-    pub fn save_last_state(&self, state: Box<dyn State>) {
+    pub(crate) fn save_last_state(&self, state: Box<dyn State>) {
         let mut lock = self.inner.lock().unwrap();
         lock.last_state = Some(state);
     }
